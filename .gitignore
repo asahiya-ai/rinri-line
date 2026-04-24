@@ -1,0 +1,17 @@
+# 環境変数・機密情報
+.env
+.env.local
+.env*.local
+config.secret.*
+secrets.*
+
+# OS生成ファイル
+.DS_Store
+Thumbs.db
+
+# エディタ設定
+.vscode/
+*.code-workspace
+
+# ログ
+*.log
