@@ -381,7 +381,7 @@
     let blocks = '';
     speakers.forEach((name, i) => {
       const summary = (summaries && summaries[i]) ? summaries[i] : '（要約なし）';
-      blocks += `【${name}さん】\n${summary}\n\n`;
+      blocks += `${summary}\n\n`;
     });
 
     return `コケコッコーー！\nおはようございます♪🐔\n\n明日金曜日はモーニングセミナーだよ！\n先週はこんな話があったよ✨\n\n${blocks.trim()}\n\n毎週金曜の朝はね、\n仕事にも人生にも使えるヒントと\n素敵な仲間との出会いが待ってるよ！☀️\n\nきっと「来てよかった！」って思える朝になるから\nぜひ一緒に過ごしましょ💛\n\n先週の参加者は${attendees}名！みんなありがとう🎉\n今週もあなたの笑顔に会えたら嬉しいな✨\n\n一緒に最高の朝をスタートしよう🐔✨`;
