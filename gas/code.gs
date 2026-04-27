@@ -2,11 +2,11 @@
 // 倫理法人会 LINE まとめアプリ - GASバックエンド
 // =============================================
 
-// ─── 設定（ここだけ変更すればOK）───
 var SPREADSHEET_ID = '1Pxf4ueI_hRncMWV-mcZJd9R6uj_e_rTQJ9zmCHIaw5w';
-var SHEET_NAME     = 'LINE記録';
 var CLAUDE_API_KEY = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
-var LINE_TOKEN     = PropertiesService.getScriptProperties().getProperty('LINE_TOKEN');
+
+// 自動送信する会場リスト（LINEトークンが設定されている会場のみ）
+var LINE_SEND_VENUES = ['佐世保'];
 
 // =============================================
 // メインエントリーポイント
@@ -15,7 +15,6 @@ var LINE_TOKEN     = PropertiesService.getScriptProperties().getProperty('LINE_T
 function doPost(e) {
   try {
     var data;
-    // application/x-www-form-urlencoded 形式で受け取る
     if (e.parameter && e.parameter.data) {
       data = JSON.parse(e.parameter.data);
     } else if (e.postData && e.postData.contents) {
@@ -36,7 +35,6 @@ function doPost(e) {
   }
 }
 
-// 動作確認用（ブラウザでURLを開くと表示される）
 function doGet(e) {
   return respond({ status: 'OK', message: 'コケコッコー！GASは正常に動いてるよ🐔' });
 }
@@ -52,22 +50,17 @@ function respond(data) {
 // =============================================
 
 function handleSummarize(data) {
-  var speakers     = data.speakers;
+  var speakers      = data.speakers;
   var transcription = data.transcription;
-  var charLimit    = data.charLimit || 150;
-
-  var speakerCount = speakers.length;
-  var speakerList = speakers.map(function(s) { return '・' + s + 'さん'; }).join('\n');
+  var charLimit     = data.charLimit || 150;
+  var speakerCount  = speakers.length;
+  var speakerList   = speakers.map(function(s) { return '・' + s + 'さん'; }).join('\n');
 
   var prompt =
     'あなたは倫理法人会モーニングセミナーのLINE投稿文を書くプロのコピーライターです。\n\n' +
     'このセミナーには' + speakerCount + '名の講話者が登壇しました：\n' + speakerList + '\n\n' +
     '【文字起こし】\n' + transcription + '\n\n' +
-
-    '【目的】\n' +
-    '翌日のモーニングセミナーに「なんか気になる」「ちょっと行ってみようかな」と思わせること。\n' +
-    '学びを説明しすぎず、"気になって動きたくなる状態"をつくる。\n\n' +
-
+    '【目的】\n翌日のモーニングセミナーに「なんか気になる」「ちょっと行ってみようかな」と思わせること。\n学びを説明しすぎず、"気になって動きたくなる状態"をつくる。\n\n' +
     '【書き方のルール】\n' +
     '- 話し言葉で書く（語りかける口語調）\n' +
     '- 冒頭に【○○さん】と講話者名を入れる\n' +
@@ -76,30 +69,20 @@ function handleSummarize(data) {
     '- 感情が動く具体的な一言・エピソードを1つだけ使う\n' +
     '- 「気づきの途中」で止める（結論を書かない）\n' +
     '- 最後は余韻を残す（言い切らない）\n\n' +
-
     '【LINEとしての最適化】\n' +
     '- 改行は2〜3文ごとに1回だけ入れる（1文ごとに改行しない）\n' +
     '- スマホでサッと読めるテンポ\n' +
     '- 各講話者ごとに120〜160文字程度（最大180文字）\n\n' +
-
     '【やってはいけないこと】\n' +
     '- 「ぜひ来てください」などの直接的な誘導\n' +
     '- 「〇〇が大切です」などの結論・まとめ\n' +
     '- すべて説明してしまうこと\n' +
     '- 固い文章・論文調\n' +
     '- 情報を詰め込みすぎる\n\n' +
-
     '【重要な考え方】\n' +
     '良い文章ではなく、「続きが気になる文章」を書く。\n' +
     '読者の頭の中に「？」が残る状態が正解。\n\n' +
-
-    '【参考トーン】\n' +
-    'うまくいかない時って、だいたい理由がある。\n' +
-    'でもそれを「運が悪かった」で終わらせてたら、たぶん何も変わらない。\n' +
-    'あの時、自分は何を見落としてたんだろうって思った時に、少し見え方が変わる気がしていて…\n\n' +
-
     '講話者が複数の場合は内容を均等に分けてください。\n\n' +
-
     '以下のJSON形式のみで回答してください：\n' +
     '{"summaries": ["1人目のテキスト", "2人目のテキスト"]}';
 
@@ -119,29 +102,23 @@ function handleSummarize(data) {
   });
 
   var responseData = JSON.parse(response.getContentText());
-
-  if (responseData.error) {
-    throw new Error('Claude APIエラー: ' + responseData.error.message);
-  }
+  if (responseData.error) throw new Error('Claude APIエラー: ' + responseData.error.message);
 
   var text = responseData.content[0].text;
-
-  // JSON部分だけ抽出（```json ... ``` で囲まれていても対応）
   var jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('要約の解析に失敗しました。返答: ' + text.substring(0, 200));
-  }
+  if (!jsonMatch) throw new Error('要約の解析に失敗しました: ' + text.substring(0, 200));
 
   var parsed = JSON.parse(jsonMatch[0]);
   return { summaries: parsed.summaries };
 }
 
 // =============================================
-// 保存処理（Googleスプレッドシート）
+// 保存処理（会場ごとにタブを分ける）
 // =============================================
 
 function handleSave(data) {
-  var sheet = getOrCreateSheet();
+  var venue = data.venue || '佐世保';
+  var sheet = getOrCreateSheetByVenue(venue);
   var now   = new Date();
 
   sheet.appendRow([
@@ -151,23 +128,23 @@ function handleSave(data) {
     data.speakers.join('、'),
     data.lineText,
     data.memo || '',
-    false,   // 投稿済み（木曜自動送信後にTRUEになる）
-    now      // 記録日時
+    false,
+    now
   ]);
 
   return { success: true };
 }
 
 // =============================================
-// シート取得・作成（なければ自動作成）
+// シート取得・作成（会場名 = タブ名）
 // =============================================
 
-function getOrCreateSheet() {
+function getOrCreateSheetByVenue(venue) {
   var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName(SHEET_NAME);
+  var sheet = ss.getSheetByName(venue);
 
   if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
+    sheet = ss.insertSheet(venue);
     sheet.appendRow(['参加日', '会場', '参加者数', '講話者', 'LINEテキスト', 'メモ', '投稿済み', '記録日時']);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(1, 100);
@@ -184,40 +161,58 @@ function getOrCreateSheet() {
 }
 
 // =============================================
-// LINE自動投稿（毎週木曜 朝9時）
+// LINE自動投稿（佐世保タブのみ・毎週木曜9時）
 // =============================================
 
 function sendWeeklyLine() {
-  var sheet = getOrCreateSheet();
-  var data  = sheet.getDataRange().getValues();
+  LINE_SEND_VENUES.forEach(function(venue) {
+    sendLineForVenue(venue);
+  });
+}
 
-  if (data.length <= 1) {
-    Logger.log('投稿するデータがありません');
+function sendLineForVenue(venue) {
+  var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(venue);
+
+  if (!sheet) {
+    Logger.log(venue + 'のシートが存在しません');
     return;
   }
 
-  // 未投稿の中で最新の行を探す
-  var targetRow  = -1;
-  var lineText   = '';
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) {
+    Logger.log(venue + ': 投稿するデータがありません');
+    return;
+  }
+
+  var targetRow = -1;
+  var lineText  = '';
 
   for (var i = data.length - 1; i >= 1; i--) {
-    if (!data[i][6]) {  // 投稿済み列 = FALSE
-      targetRow = i + 1;  // 1-indexed
-      lineText  = data[i][4];  // LINEテキスト列
+    if (!data[i][6]) {
+      targetRow = i + 1;
+      lineText  = data[i][4];
       break;
     }
   }
 
   if (targetRow === -1 || !lineText) {
-    Logger.log('未投稿のデータがありません');
+    Logger.log(venue + ': 未投稿のデータがありません');
     return;
   }
 
-  // LINE Messaging API で broadcast 送信
+  var tokenKey = 'LINE_TOKEN_' + venue;
+  var token    = PropertiesService.getScriptProperties().getProperty(tokenKey);
+
+  if (!token) {
+    Logger.log(venue + ': LINEトークン未設定（キー: ' + tokenKey + '）');
+    return;
+  }
+
   var response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/broadcast', {
     method: 'post',
     headers: {
-      'Authorization': 'Bearer ' + LINE_TOKEN,
+      'Authorization': 'Bearer ' + token,
       'Content-Type': 'application/json'
     },
     payload: JSON.stringify({
@@ -227,30 +222,25 @@ function sendWeeklyLine() {
   });
 
   var status = response.getResponseCode();
-  Logger.log('LINE送信レスポンス: ' + status + ' ' + response.getContentText());
+  Logger.log(venue + ' LINE送信: ' + status);
 
   if (status === 200) {
-    sheet.getRange(targetRow, 7).setValue(true);  // 投稿済み = TRUE
-    Logger.log('LINE送信成功！行: ' + targetRow);
-  } else {
-    Logger.log('LINE送信失敗: ' + response.getContentText());
+    sheet.getRange(targetRow, 7).setValue(true);
+    Logger.log(venue + ': 送信成功！行 ' + targetRow);
   }
 }
 
 // =============================================
-// タイマー設定（一度だけ実行してください）
-// GASエディタで「setWeeklyTrigger」を選んで実行
+// タイマー設定（一度だけ実行）
 // =============================================
 
 function setWeeklyTrigger() {
-  // 既存の同名トリガーを削除（重複防止）
   ScriptApp.getProjectTriggers().forEach(function(t) {
     if (t.getHandlerFunction() === 'sendWeeklyLine') {
       ScriptApp.deleteTrigger(t);
     }
   });
 
-  // 毎週木曜日 9:00〜10:00 に実行
   ScriptApp.newTrigger('sendWeeklyLine')
     .timeBased()
     .onWeekDay(ScriptApp.WeekDay.THURSDAY)
@@ -261,17 +251,25 @@ function setWeeklyTrigger() {
 }
 
 // =============================================
-// テスト用関数（GASエディタから手動実行）
+// テスト用（GASエディタから手動実行）
 // =============================================
 
-// LINE送信テスト（「testLineSend」を選んで実行）
 function testLineSend() {
-  var testText = 'コケコッコーー！\nおはようございます♪🐔\n\nこれはテスト送信です。正常に届いていたら設定完了です！';
+  var venue    = '佐世保';
+  var tokenKey = 'LINE_TOKEN_' + venue;
+  var token    = PropertiesService.getScriptProperties().getProperty(tokenKey);
+
+  if (!token) {
+    Logger.log('トークン未設定: ' + tokenKey);
+    return;
+  }
+
+  var testText = 'コケコッコーー！\nおはようございます♪🐔\n\nこれはテスト送信です。正常に届いていたら設定完了！';
 
   var response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/broadcast', {
     method: 'post',
     headers: {
-      'Authorization': 'Bearer ' + LINE_TOKEN,
+      'Authorization': 'Bearer ' + token,
       'Content-Type': 'application/json'
     },
     payload: JSON.stringify({
@@ -280,5 +278,5 @@ function testLineSend() {
     muteHttpExceptions: true
   });
 
-  Logger.log('テスト送信結果: ' + response.getResponseCode() + ' ' + response.getContentText());
+  Logger.log('テスト結果: ' + response.getResponseCode() + ' ' + response.getContentText());
 }

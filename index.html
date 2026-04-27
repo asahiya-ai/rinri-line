@@ -248,7 +248,25 @@
     <input type="date" id="seminarDate">
 
     <label>会場</label>
-    <div class="venue-display">📍 佐世保（固定）</div>
+    <select id="venue" style="width:100%; padding:10px 12px; border:2px solid var(--border); border-radius:9px; font-size:0.95rem; font-family:inherit; margin-bottom:6px; background:#FAFAFA;" onchange="onVenueChange(this)">
+      <option value="佐世保">📍 佐世保</option>
+      <option value="長崎">📍 長崎</option>
+      <option value="諫早">📍 諫早</option>
+      <option value="島原">📍 島原</option>
+      <option value="長崎南">📍 長崎南</option>
+      <option value="大村">📍 大村</option>
+      <option value="雲仙">📍 雲仙</option>
+      <option value="西そのぎ">📍 西そのぎ</option>
+      <option value="有田伊万里">📍 有田伊万里</option>
+      <option value="武雄">📍 武雄</option>
+      <option value="__add__">➕ 新しい会場を追加…</option>
+    </select>
+    <div id="venueAddArea" style="display:none; margin-bottom:13px;">
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="newVenueName" placeholder="会場名を入力（例：佐賀）" style="flex:1; padding:10px 12px; border:2px solid var(--border); border-radius:9px; font-size:0.95rem; font-family:inherit; background:#FAFAFA;">
+        <button onclick="addNewVenue()" style="padding:10px 16px; background:var(--primary); color:#fff; border:none; border-radius:9px; font-size:0.9rem; cursor:pointer;">追加</button>
+      </div>
+    </div>
 
     <label>参加者数</label>
     <input type="number" id="attendees" placeholder="例: 15" min="1">
@@ -309,11 +327,63 @@
   // ★ GASをデプロイ後にこのURLを書き換えてください
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbxwR2xQUquQhWhfKtHIOS3SxOiIkK-NJDewwS356ODyS1NGR7an80am8mArJv0viv0o/exec';
 
-  // 今日の日付をデフォルトセット
+  // 今日の日付をデフォルトセット＋カスタム会場を復元
   window.addEventListener('DOMContentLoaded', () => {
     const today = new Date();
     document.getElementById('seminarDate').value = today.toISOString().split('T')[0];
+
+    // localStorage に保存されたカスタム会場を復元
+    const saved = JSON.parse(localStorage.getItem('customVenues') || '[]');
+    const sel = document.getElementById('venue');
+    const addOpt = sel.querySelector('option[value="__add__"]');
+    saved.forEach(v => {
+      const opt = new Option('📍 ' + v, v);
+      sel.insertBefore(opt, addOpt);
+    });
   });
+
+  // 会場セレクト変更時
+  function onVenueChange(sel) {
+    const area = document.getElementById('venueAddArea');
+    if (sel.value === '__add__') {
+      area.style.display = 'block';
+      document.getElementById('newVenueName').focus();
+    } else {
+      area.style.display = 'none';
+    }
+  }
+
+  // 新しい会場を追加
+  function addNewVenue() {
+    const input = document.getElementById('newVenueName');
+    const name = input.value.trim();
+    if (!name) { alert('会場名を入力してください'); return; }
+
+    const sel = document.getElementById('venue');
+    // 重複チェック
+    for (const opt of sel.options) {
+      if (opt.value === name) {
+        sel.value = name;
+        document.getElementById('venueAddArea').style.display = 'none';
+        input.value = '';
+        return;
+      }
+    }
+
+    // セレクトに追加
+    const addOpt = sel.querySelector('option[value="__add__"]');
+    const newOpt = new Option('📍 ' + name, name);
+    sel.insertBefore(newOpt, addOpt);
+    sel.value = name;
+
+    // localStorageに保存
+    const saved = JSON.parse(localStorage.getItem('customVenues') || '[]');
+    saved.push(name);
+    localStorage.setItem('customVenues', JSON.stringify(saved));
+
+    document.getElementById('venueAddArea').style.display = 'none';
+    input.value = '';
+  }
 
   // ─── 講話者 追加 ───
   function addSpeaker() {
@@ -415,7 +485,7 @@
     document.getElementById('saveBtn').disabled = true;
 
     try {
-      const result = await callGAS({ action: 'save', date, venue: '佐世保', attendees, speakers, lineText, memo });
+      const result = await callGAS({ action: 'save', date, venue: document.getElementById('venue').value, attendees, speakers, lineText, memo });
       if (result.error) throw new Error(result.error);
       setStatus('saveStatus', 'success', '✅ 保存完了！スプレッドシートに記録しました🎉');
     } catch (err) {
