@@ -280,3 +280,39 @@ function testLineSend() {
 
   Logger.log('テスト結果: ' + response.getResponseCode() + ' ' + response.getContentText());
 }
+
+function testSendLatest() {
+  var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('佐世保');
+  var data  = sheet.getDataRange().getValues();
+
+  // 未投稿の最新行を探す
+  var lineText = '';
+  for (var i = data.length - 1; i >= 1; i--) {
+    if (!data[i][6]) {
+      lineText = data[i][4];
+      break;
+    }
+  }
+
+  if (!lineText) {
+    Logger.log('未投稿のデータがありません');
+    return;
+  }
+
+  // 送信（投稿済みフラグは変えない）
+  var token = PropertiesService.getScriptProperties().getProperty('LINE_TOKEN_佐世保');
+  UrlFetchApp.fetch('https://api.line.me/v2/bot/message/broadcast', {
+    method: 'post',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    },
+    payload: JSON.stringify({
+      messages: [{ type: 'text', text: lineText }]
+    }),
+    muteHttpExceptions: true
+  });
+
+  Logger.log('テスト送信完了！投稿済みフラグは変更していません✅');
+}
