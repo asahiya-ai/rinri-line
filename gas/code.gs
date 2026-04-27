@@ -209,6 +209,8 @@ function sendLineForVenue(venue) {
     return;
   }
 
+  var imageUrl = 'https://asahiya-ai.com/rinri-line/images/flyer.png';
+
   var response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/broadcast', {
     method: 'post',
     headers: {
@@ -216,7 +218,17 @@ function sendLineForVenue(venue) {
       'Content-Type': 'application/json'
     },
     payload: JSON.stringify({
-      messages: [{ type: 'text', text: lineText }]
+      messages: [
+        {
+          type: 'text',
+          text: lineText
+        },
+        {
+          type: 'image',
+          originalContentUrl: imageUrl,
+          previewImageUrl:    imageUrl
+        }
+      ]
     }),
     muteHttpExceptions: true
   });
@@ -301,7 +313,7 @@ function testSendLatest() {
 
   var tokenKey = 'LINE_TOKEN_佐世保';
   var token    = PropertiesService.getScriptProperties().getProperty(tokenKey);
-  var imageUrl = 'https://asahiya-ai.github.io/rinri-line/images/flyer.png';
+  var imageUrl = 'https://asahiya-ai.com/rinri-line/images/flyer.png';
 
   UrlFetchApp.fetch('https://api.line.me/v2/bot/message/broadcast', {
     method: 'post',
@@ -312,13 +324,13 @@ function testSendLatest() {
     payload: JSON.stringify({
       messages: [
         {
+          type: 'text',
+          text: lineText
+        },
+        {
           type: 'image',
           originalContentUrl: imageUrl,
           previewImageUrl:    imageUrl
-        },
-        {
-          type: 'text',
-          text: lineText
         }
       ]
     }),
