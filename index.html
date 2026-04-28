@@ -898,9 +898,11 @@ function toggleSummary() {
 
 // ─── 共通: GAS呼び出し ───
 async function callGAS(payload) {
-  const params = new URLSearchParams();
-  params.append('data', JSON.stringify(payload));
-  const res = await fetch(GAS_URL, { method: 'POST', body: params });
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  });
   if (!res.ok) throw new Error('通信エラー (HTTP ' + res.status + ')');
   return res.json();
 }
