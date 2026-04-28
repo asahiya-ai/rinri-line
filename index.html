@@ -906,6 +906,17 @@ function renderScoreCard(r) {
   const tagHtml = tags.map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
   document.getElementById('scoreTags').innerHTML = tagHtml || '<span class="tag tag-blue">採点完了</span>';
 
+  const tagText = tags.length > 0
+    ? tags.map(t => t.label).join('　')
+    : 'なし';
+  const existingLabel = document.getElementById('tokuseiLabel');
+  if (existingLabel) existingLabel.remove();
+  const labelEl = document.createElement('p');
+  labelEl.id = 'tokuseiLabel';
+  labelEl.style.cssText = 'font-size:0.8rem; color:var(--text-light); margin-top:4px; margin-bottom:8px;';
+  labelEl.innerHTML = `<strong style="color:var(--text);">講話特性：</strong>${tagText}`;
+  document.getElementById('scoreTags').after(labelEl);
+
   // 横棒グラフ
   const items = [
     { label: '流暢さ', key: 'fluency', max: 15 },
@@ -931,8 +942,8 @@ function renderScoreCard(r) {
   document.getElementById('adviceText').textContent = r.advice || '';
   document.getElementById('goodText').textContent = r.good_point || '';
 
-  // 要約
-  document.getElementById('summaryBody').textContent = r.summary || '';
+  // 要約（data属性に保存、表示はtoggleSummaryで行う）
+  document.getElementById('summaryBody').dataset.summary = r.summary || '';
 
   // 講話者名
   document.getElementById('scoreCardSpeakerName').textContent =
@@ -970,20 +981,23 @@ function renderScoreCard(r) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      },
       scales: {
         r: {
           min: 0,
           ticks: { display: false },
           pointLabels: {
-            font: { size: 11, weight: 'bold' },
-            color: isDark ? '#ffffff' : '#333333',
+            font: { size: 12, weight: 'bold' },
+            color: isDark ? '#ffffff' : '#222222',
             callback: function(label, index) {
               return label + ' ' + radarData[index];
             }
           },
-          grid: { color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.2)', lineWidth: 1.2 },
-          angleLines: { color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.2)', lineWidth: 1.2 }
+          grid: { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)', lineWidth: 1.5 },
+          angleLines: { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)', lineWidth: 1.5 }
         }
       }
     }
@@ -1013,6 +1027,10 @@ function toggleSummary() {
     body.style.display = 'none';
     btn.textContent = '▼ 要約を見る';
   } else {
+    const speakerName = document.getElementById('scoreSpeakerName').value.trim() || '講話者';
+    body.innerHTML =
+      `<p style="font-size:0.8rem; color:var(--text-light); margin-bottom:6px;">📝 ${speakerName}さんの講話要約</p>`
+      + (body.dataset.summary || '');
     body.style.display = 'block';
     btn.textContent = '▲ 要約を閉じる';
   }
