@@ -80,6 +80,27 @@ function respond(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+function callClaude(systemPrompt, userMessage) {
+  var response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post',
+    headers: {
+      'x-api-key': CLAUDE_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json'
+    },
+    payload: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }]
+    }),
+    muteHttpExceptions: true
+  });
+  var responseData = JSON.parse(response.getContentText());
+  if (responseData.error) throw new Error('Claude APIエラー: ' + responseData.error.message);
+  return responseData.content[0].text;
+}
+
 // =============================================
 // 要約処理（Claude API呼び出し）
 // =============================================
@@ -91,55 +112,18 @@ function handleSummarize(data) {
   var speakerCount  = speakers.length;
   var speakerList   = speakers.map(function(s) { return '・' + s + 'さん'; }).join('\n');
 
-  var prompt =
-    'あなたは倫理法人会モーニングセミナーのLINE投稿文を書くプロのコピーライターです。\n\n' +
-    'このセミナーには' + speakerCount + '名の講話者が登壇しました：\n' + speakerList + '\n\n' +
-    '【文字起こし】\n' + transcription + '\n\n' +
-    '【目的】\n翌日のモーニングセミナーに「なんか気になる」「ちょっと行ってみようかな」と思わせること。\n学びを説明しすぎず、"気になって動きたくなる状態"をつくる。\n\n' +
-    '【書き方のルール】\n' +
-    '- 話し言葉で書く（語りかける口語調）\n' +
-    '- 冒頭に【○○さん】と講話者名を入れる\n' +
-    '- 内容は「7割ぼかす・3割見せる」（説明しすぎない）\n' +
-    '- 読み手が「自分ごと化」できる問いや違和感を入れる\n' +
-    '- 感情が動く具体的な一言・エピソードを1つだけ使う\n' +
-    '- 「気づきの途中」で止める（結論を書かない）\n' +
-    '- 最後は余韻を残す（言い切らない）\n\n' +
-    '【LINEとしての最適化】\n' +
-    '- 改行は2〜3文ごとに1回だけ入れる（1文ごとに改行しない）\n' +
-    '- スマホでサッと読めるテンポ\n' +
-    '- 各講話者ごとに120〜160文字程度（最大180文字）\n\n' +
-    '【やってはいけないこと】\n' +
-    '- 「ぜひ来てください」などの直接的な誘導\n' +
-    '- 「〇〇が大切です」などの結論・まとめ\n' +
-    '- すべて説明してしまうこと\n' +
-    '- 固い文章・論文調\n' +
-    '- 情報を詰め込みすぎる\n\n' +
-    '【重要な考え方】\n' +
-    '良い文章ではなく、「続きが気になる文章」を書く。\n' +
-    '読者の頭の中に「？」が残る状態が正解。\n\n' +
-    '講話者が複数の場合は内容を均等に分けてください。\n\n' +
-    '以下のJSON形式のみで回答してください：\n' +
-    '{"summaries": ["1人目のテキスト", "2人目のテキスト"]}';
+  var systemPrompt = '倫理法人会のモーニングセミナーの講話を要約するアシスタントです。'
+    + '必ず指定された講話者名を使って【○○さん】形式でヘッダーをつけてください。'
+    + '文字起こし内に別の人名が出てきても、指定された名前を優先してください。';
 
-  var response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
-    method: 'post',
-    headers: {
-      'x-api-key': CLAUDE_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json'
-    },
-    payload: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2048,
-      messages: [{ role: 'user', content: prompt }]
-    }),
-    muteHttpExceptions: true
-  });
+  var userMessage = '以下の文字起こしを講話者ごとに' + charLimit + '文字程度で要約してください。\n'
+    + '講話者名は必ず以下を使ってください: ' + speakers.join('、') + '\n'
+    + 'ヘッダーは【田中さん】のように必ず入力した名前をそのまま使ってください。\n\n'
+    + '文字起こし:\n' + transcription + '\n\n'
+    + '以下のJSON形式のみで回答してください：\n'
+    + '{"summaries": ["1人目のテキスト", "2人目のテキスト"]}';
 
-  var responseData = JSON.parse(response.getContentText());
-  if (responseData.error) throw new Error('Claude APIエラー: ' + responseData.error.message);
-
-  var text = responseData.content[0].text;
+  var text = callClaude(systemPrompt, userMessage);
   var jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('要約の解析に失敗しました: ' + text.substring(0, 200));
 
@@ -153,47 +137,60 @@ function handleSummarize(data) {
 
 function handleScore(data) {
   var transcription = data.transcription;
-  var speakerName   = data.speakerName || '講話者';
+  var speakerName = data.speakerName || '講話者';
 
-  var prompt =
-    'あなたは倫理法人会モーニングセミナーの講話採点システムです。\n\n' +
-    '講話者名: ' + speakerName + 'さん\n\n' +
-    '【文字起こし】\n' + transcription + '\n\n' +
-    '以下の7項目で採点してください：\n' +
-    '1. 流暢さ（fluency）: 最大15点 - えー・その・あのなどのフィラーが少ない\n' +
-    '2. 構成（structure）: 最大20点 - 起承転結・結論が明確\n' +
-    '3. 具体性（specificity）: 最大15点 - 具体的なエピソード・数字がある\n' +
-    '4. 言葉（wording）: 最大15点 - 聴きやすい言葉・表現\n' +
-    '5. 働きかけ（engagement）: 最大15点 - 聴衆への問いかけ・共感\n' +
-    '6. 倫理度（ethics）: 最大10点 - 倫理法人会の理念に沿っている\n' +
-    '7. 熱量（passion）: 最大10点 - 情熱・エネルギーが伝わる\n\n' +
-    'また、フィラー（えー・その・あの）の出現回数を数えてください。\n\n' +
-    '以下のJSON形式のみで回答してください（説明文は不要）：\n' +
-    '{"total":総合点,"scores":{"fluency":点数,"structure":点数,"specificity":点数,"wording":点数,"engagement":点数,"ethics":点数,"passion":点数},"filler_count":{"ee":えーの回数,"sono":そのの回数,"ano":あのの回数},"advice":"改善アドバイスを2〜3文で","good_point":"良かった点を2〜3文で","summary":"講話内容の要約を150文字程度で"}';
+  var fillerCount = {
+    ee:   (transcription.match(/えー|ええ|えーと/g) || []).length,
+    sono: (transcription.match(/その|そのー/g) || []).length,
+    ano:  (transcription.match(/あのー|あの、|あのう/g) || []).length
+  };
 
-  var response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
-    method: 'post',
-    headers: {
-      'x-api-key': CLAUDE_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json'
-    },
-    payload: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: prompt }]
-    }),
-    muteHttpExceptions: true
-  });
+  var systemPrompt = '倫理法人会のモーニングセミナー講話を採点するプロのスピーチコーチです。'
+    + '採点結果は必ずJSON形式のみで返してください。余分なテキストは不要です。'
+    + 'アドバイスは必ず「〇〇した方が聞きやすくなるかもしれませんね。」のような優しく前向きな表現で書いてください。';
 
-  var responseData = JSON.parse(response.getContentText());
-  if (responseData.error) throw new Error('Claude APIエラー: ' + responseData.error.message);
+  var userMessage = '以下の講話テキストを7項目で採点し、JSONで返してください。\n\n'
+    + '採点者: ' + speakerName + 'さん\n\n'
+    + '【講話テキスト】\n' + transcription + '\n\n'
+    + '【採点基準】\n'
+    + '- fluency（流暢さ・フィラー語の少なさ）: 0〜15点\n'
+    + '- structure（構成の明確さ）: 0〜20点\n'
+    + '- specificity（内容の具体性）: 0〜15点\n'
+    + '- wording（言葉の選び方）: 0〜15点\n'
+    + '- engagement（聴衆への働きかけ）: 0〜15点\n'
+    + '- ethics（倫理度）: 0〜10点\n'
+    + '- passion（熱量・誠実さ）: 0〜10点\n\n'
+    + '【アドバイスの書き方】\n'
+    + '必ず「〇〇した方が聞きやすくなるかもしれませんね」「〇〇を意識してみると、さらに伝わりやすくなるかもしれません」のような優しく前向きな表現を使ってください。\n\n'
+    + '返す形式（JSONのみ、マークダウン不要）:\n'
+    + '{\n'
+    + '  "total": 合計点,\n'
+    + '  "scores": {\n'
+    + '    "fluency": 点数,\n'
+    + '    "structure": 点数,\n'
+    + '    "specificity": 点数,\n'
+    + '    "wording": 点数,\n'
+    + '    "engagement": 点数,\n'
+    + '    "ethics": 点数,\n'
+    + '    "passion": 点数\n'
+    + '  },\n'
+    + '  "advice": "優しいアドバイス（200文字以内）",\n'
+    + '  "good_point": "良かった点（200文字以内）",\n'
+    + '  "summary": "講話の要約（300文字以内）"\n'
+    + '}';
 
-  var text = responseData.content[0].text;
-  var jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('採点の解析に失敗しました: ' + text.substring(0, 200));
+  var resultText = callClaude(systemPrompt, userMessage);
+  var cleaned = resultText.replace(/```json|```/g, '').trim();
+  var result = JSON.parse(cleaned);
 
-  return JSON.parse(jsonMatch[0]);
+  if (!result.total && result.scores) {
+    var total = 0;
+    Object.values(result.scores).forEach(function(v) { total += v; });
+    result.total = total;
+  }
+
+  result.filler_count = fillerCount;
+  return result;
 }
 
 // =============================================
