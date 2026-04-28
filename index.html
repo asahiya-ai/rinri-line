@@ -607,14 +607,28 @@ function switchTab(tab) {
   document.getElementById('tab-' + tab).classList.add('active');
   event.target.classList.add('active');
 
-  // 採点タブに切り替えたとき文字起こしを同期
-  if (tab === 'score') syncTranscription();
+  // 採点タブに切り替えたとき文字起こし・講話者名を同期
+  if (tab === 'score') {
+    syncTranscription();
+    syncSpeakerName();
+  }
 }
 
 // ─── 文字起こし同期 ───
 function syncTranscription() {
   const src = document.getElementById('transcription').value;
   document.getElementById('transcriptionReadonly').value = src;
+}
+
+// ─── 講話者名同期（最後の1人をセット） ───
+function syncSpeakerName() {
+  const speakerInputs = document.querySelectorAll('.speaker-input');
+  if (speakerInputs.length > 0) {
+    const lastSpeaker = speakerInputs[speakerInputs.length - 1];
+    if (lastSpeaker.value.trim()) {
+      document.getElementById('scoreSpeakerName').value = lastSpeaker.value.trim();
+    }
+  }
 }
 
 // 今日の日付をデフォルトセット＆カスタム会場復元
@@ -800,7 +814,10 @@ function switchTabByName(tab) {
   document.getElementById('tab-' + tab).classList.add('active');
   const idx = tab === 'line' ? 0 : 1;
   document.querySelectorAll('.tab-btn')[idx].classList.add('active');
-  if (tab === 'score') syncTranscription();
+  if (tab === 'score') {
+    syncTranscription();
+    syncSpeakerName();
+  }
 }
 
 // ─── 採点する ───
