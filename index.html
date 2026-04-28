@@ -532,6 +532,24 @@ textarea { resize: vertical; min-height: 130px; }
   <div class="card">
     <div class="card-title">🎤 講話採点</div>
 
+    <button class="accordion-btn" onclick="toggleScoreCriteria()" id="scoreCriteriaBtn" style="margin-bottom:14px;">📋 採点基準を見る ▼</button>
+    <div class="accordion-body" id="scoreCriteriaBody" style="display:none; margin-bottom:14px;">
+      <table style="width:100%; font-size:0.82rem; border-collapse:collapse;">
+        <tr style="background:#FFF3E0;">
+          <th style="padding:6px 8px; text-align:left; color:#5D3A00;">項目</th>
+          <th style="padding:6px 8px; text-align:center; color:#5D3A00;">配点</th>
+          <th style="padding:6px 8px; text-align:left; color:#5D3A00;">基準</th>
+        </tr>
+        <tr><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">流暢さ</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">15点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">フィラー語が少なくスムーズか</td></tr>
+        <tr style="background:#FAFAFA;"><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">構成</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">20点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">導入→本題→まとめの流れがあるか</td></tr>
+        <tr><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">具体性</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">15点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">体験談・数字・エピソードがあるか</td></tr>
+        <tr style="background:#FAFAFA;"><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">言葉</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">15点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">伝わりやすい言葉を選んでいるか</td></tr>
+        <tr><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">働きかけ</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">15点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">問いかけや共感を呼ぶ表現があるか</td></tr>
+        <tr style="background:#FAFAFA;"><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">倫理度</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">10点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">倫理法人会の精神に沿っているか</td></tr>
+        <tr><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">熱量</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">10点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">誠実さや情熱が伝わってくるか</td></tr>
+      </table>
+    </div>
+
     <label>講話者名</label>
     <input type="text" id="scoreSpeakerName" placeholder="例：田中">
 
@@ -865,17 +883,24 @@ function renderScoreCard(r) {
 
   // フィラー
   const fc = r.filler_count || {};
-  document.getElementById('fillerStat').textContent =
-    `えー: ${fc.ee||0}回 / その: ${fc.sono||0}回 / あの: ${fc.ano||0}回`;
+  const fluencyScore = Math.min(s.fluency || 0, 15);
+  document.getElementById('fillerStat').innerHTML =
+    `流暢さ: <strong>${fluencyScore}/15点</strong>　（えー: ${fc.ee||0}回 / その: ${fc.sono||0}回 / あの: ${fc.ano||0}回）`;
 
   // タグ生成
   const tags = [];
   const s = r.scores || {};
-  if (s.structure >= 15) tags.push({ label: '構成◎', cls: 'tag-green' });
-  if (s.ethics >= 8)    tags.push({ label: '倫理度高', cls: 'tag-blue' });
-  if (s.fluency < 8)    tags.push({ label: 'フィラー注意', cls: 'tag-orange' });
-  if (s.passion >= 8)   tags.push({ label: '熱量◎', cls: 'tag-green' });
-  if (s.engagement >= 12) tags.push({ label: '働きかけ◎', cls: 'tag-green' });
+  if (s.structure >= 18)       tags.push({ label: '構成◎', cls: 'tag-green' });
+  else if (s.structure >= 13)  tags.push({ label: '構成○', cls: 'tag-green' });
+  if (s.ethics >= 9)           tags.push({ label: '倫理度◎', cls: 'tag-blue' });
+  else if (s.ethics >= 7)      tags.push({ label: '倫理度○', cls: 'tag-blue' });
+  if (s.passion >= 9)          tags.push({ label: '熱量◎', cls: 'tag-green' });
+  else if (s.passion >= 7)     tags.push({ label: '熱量○', cls: 'tag-green' });
+  if (s.engagement >= 13)      tags.push({ label: '働きかけ◎', cls: 'tag-green' });
+  else if (s.engagement >= 10) tags.push({ label: '働きかけ○', cls: 'tag-green' });
+  if (s.specificity >= 13)     tags.push({ label: '具体性◎', cls: 'tag-orange' });
+  else if (s.specificity >= 10)tags.push({ label: '具体性○', cls: 'tag-orange' });
+  if ((s.fluency || 0) < 8)   tags.push({ label: 'フィラー注意', cls: 'tag-orange' });
   const tagHtml = tags.map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
   document.getElementById('scoreTags').innerHTML = tagHtml || '<span class="tag tag-blue">採点完了</span>';
 
@@ -948,15 +973,34 @@ function renderScoreCard(r) {
         r: {
           min: 0,
           ticks: { display: false },
-          pointLabels: { font: { size: 11 }, color: textColor },
-          grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
-          angleLines: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }
+          pointLabels: {
+            font: { size: 11, weight: 'bold' },
+            color: isDark ? '#ffffff' : '#333333',
+            callback: function(label, index) {
+              return label + ' ' + radarData[index];
+            }
+          },
+          grid: { color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.2)', lineWidth: 1.2 },
+          angleLines: { color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.2)', lineWidth: 1.2 }
         }
       }
     }
   });
 
   document.getElementById('scoreCard').style.display = 'block';
+}
+
+// ─── 採点基準アコーディオン ───
+function toggleScoreCriteria() {
+  const body = document.getElementById('scoreCriteriaBody');
+  const btn = document.getElementById('scoreCriteriaBtn');
+  if (body.style.display === 'block') {
+    body.style.display = 'none';
+    btn.textContent = '📋 採点基準を見る ▼';
+  } else {
+    body.style.display = 'block';
+    btn.textContent = '📋 採点基準を閉じる ▲';
+  }
 }
 
 // ─── 要約アコーディオン ───
