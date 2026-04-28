@@ -881,15 +881,12 @@ async function doScore() {
 function renderScoreCard(r) {
   document.getElementById('scoreTotal').textContent = r.total || '--';
 
-  // フィラー
-  const fc = r.filler_count || {};
+  const s = r.scores || {};
+
   const fluencyScore = Math.min(s.fluency || 0, 15);
-  document.getElementById('fillerStat').innerHTML =
-    `流暢さ: <strong>${fluencyScore}/15点</strong>　（えー: ${fc.ee||0}回 / その: ${fc.sono||0}回 / あの: ${fc.ano||0}回）`;
 
   // タグ生成
   const tags = [];
-  const s = r.scores || {};
   if (s.structure >= 18)       tags.push({ label: '構成◎', cls: 'tag-green' });
   else if (s.structure >= 13)  tags.push({ label: '構成○', cls: 'tag-green' });
   if (s.ethics >= 9)           tags.push({ label: '倫理度◎', cls: 'tag-blue' });
@@ -900,7 +897,12 @@ function renderScoreCard(r) {
   else if (s.engagement >= 10) tags.push({ label: '働きかけ○', cls: 'tag-green' });
   if (s.specificity >= 13)     tags.push({ label: '具体性◎', cls: 'tag-orange' });
   else if (s.specificity >= 10)tags.push({ label: '具体性○', cls: 'tag-orange' });
-  if ((s.fluency || 0) < 8)   tags.push({ label: 'フィラー注意', cls: 'tag-orange' });
+  if (fluencyScore < 8)        tags.push({ label: 'フィラー注意', cls: 'tag-orange' });
+
+  // フィラー
+  const fc = r.filler_count || {};
+  document.getElementById('fillerStat').innerHTML =
+    `流暢さ: <strong>${fluencyScore}/15点</strong>　（えー: ${fc.ee||0}回 / その: ${fc.sono||0}回 / あの: ${fc.ano||0}回）`;
   const tagHtml = tags.map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
   document.getElementById('scoreTags').innerHTML = tagHtml || '<span class="tag tag-blue">採点完了</span>';
 
