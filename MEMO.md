@@ -19,9 +19,10 @@ LINEに自動投稿するアプリ「コケコッコーのリンちゃん」
 | キー | 内容 |
 |------|------|
 | CLAUDE_API_KEY | Claude APIキー |
-| LINE_TOKEN_佐世保 | 佐世保LINEトークン |
+| LINE_TOKEN_佐世保 | 佐世保LINEトークン（佐世保広報も共用） |
 | LINE_GROUP_ID_テスト | テスト用グループLINEのID |
-| LINE_GROUP_ID_佐世保 | 本番佐世保グループLINEのID（本番運用時に追加） |
+| LINE_GROUP_ID_佐世保 | 本番佐世保グループLINEのID |
+| LINE_GROUP_ID_佐世保広報 | 佐世保広報グループLINEのID |
 | LINE_TOKEN_○○ | 他会場追加時はこの形式で追加 |
 
 ## スプレッドシート構成
@@ -37,10 +38,11 @@ LINEに自動投稿するアプリ「コケコッコーのリンちゃん」
 
 ## LINE自動送信の仕組み
 - 毎週木曜9時に sendWeeklyLine が自動実行
-- 現在の自動送信対象：佐世保のみ（LINE_SEND_VENUES で管理）
+- 現在の自動送信対象：佐世保・佐世保広報（LINE_SEND_VENUES で管理）
 - 未投稿（FALSE）の中で最新の行を送信
 - 送信後に投稿済みフラグが TRUE になる
 - 送信内容：テキスト → フライヤー画像の順
+- 佐世保広報は佐世保シートのデータを使い、佐世保広報グループIDに送信（トークンは佐世保と共用）
 
 ## LINEグループIDの取得方法
 1. LINE Developersコンソールでグループ参加を許可
@@ -73,6 +75,7 @@ LINEに自動投稿するアプリ「コケコッコーのリンちゃん」
 | sendLineForVenue | 会場ごとのLINE送信処理（push送信） |
 | testLineSend | テキストのみのテスト送信 |
 | testSendLatest | 佐世保の最新データをテストグループに送信（フラグ変更なし） |
+| testSendKohoGroup | 佐世保広報グループへのテスト送信（設定確認用） |
 | setWeeklyTrigger | 木曜9時タイマーの設定 |
 
 ## 本番運用に向けて残っている作業
@@ -80,6 +83,23 @@ LINEに自動投稿するアプリ「コケコッコーのリンちゃん」
 - [ ] グループIDを取得して LINE_GROUP_ID_佐世保 に登録
 - [ ] sendLineForVenue の送信先を本番グループIDに変更確認
 - [ ] GitHubにcode.gsの最新版をpush
+
+## 採点機能の仕様（index.html）
+
+### レーダーチャートの色設定（2026/04/30時点）
+| 項目 | 値 |
+|------|----|
+| backgroundColor | `rgba(232,130,12,0.35)` |
+| borderColor | `#E8820C` |
+| grid / angleLines color | `rgba(180,120,0,0.5)` |
+| pointLabels color | `#333333` |
+
+※ ダークモード分岐は廃止。固定色に統一（視認性優先）
+
+### 採点結果のlocalStorage保存・復元
+- **保存**：`doScore()` 完了時に `localStorage.lastScoreResult` へ JSON 保存（result＋speakerName）
+- **復元**：`DOMContentLoaded` 時に自動復元してscoreCardを表示
+- **クリア**：scoreCard下部の「🗑️ 結果をクリア」ボタン → `clearScore()` で削除＋非表示
 
 ## 更新履歴
 - 2026/04/24：初版作成・基本機能完成
@@ -90,3 +110,6 @@ LINEに自動投稿するアプリ「コケコッコーのリンちゃん」
 - 2026/04/27：broadcast → push送信（グループ指定）に変更
 - 2026/04/27：LINEグループWebhook機能追加・グループID取得完了
 - 2026/04/27：テストグループへの送信確認済み
+- 2026/04/29：佐世保広報グループへの送信機能追加（LINE_SEND_VENUES・sendLineForVenue修正・testSendKohoGroup追加）
+- 2026/04/30：レーダーチャートの色を固定値に修正（背景・グリッド・ラベル）
+- 2026/04/30：採点結果のlocalStorage保存・復元・クリア機能を追加
