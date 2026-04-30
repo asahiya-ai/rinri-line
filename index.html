@@ -607,6 +607,10 @@ textarea { resize: vertical; min-height: 130px; }
       <button class="accordion-btn" onclick="toggleSummary()" id="summaryToggleBtn">▼ 要約を見る</button>
       <div class="accordion-body" id="summaryBody"></div>
 
+      <div style="text-align:center; margin-top:20px;">
+        <button onclick="clearScore()" style="background:none; border:1px solid #ccc; border-radius:8px; padding:8px 20px; color:var(--text-light); font-size:0.85rem; cursor:pointer;">🗑️ 結果をクリア</button>
+      </div>
+
     </div><!-- /score-card -->
   </div>
 
@@ -671,6 +675,20 @@ window.addEventListener('DOMContentLoaded', () => {
     const opt = new Option('📍 ' + v, v);
     sel.insertBefore(opt, addOpt);
   });
+
+  // 採点結果の復元
+  const savedScore = localStorage.getItem('lastScoreResult');
+  if (savedScore) {
+    try {
+      const { result, speakerName } = JSON.parse(savedScore);
+      document.getElementById('scoreSpeakerName').value = speakerName || '';
+      scoreCompleted = true;
+      scoreResult = result;
+      renderScoreCard(result);
+    } catch (e) {
+      localStorage.removeItem('lastScoreResult');
+    }
+  }
 });
 
 // ─── 会場セレクト変更時 ───
@@ -868,6 +886,7 @@ async function doScore() {
     scoreCompleted = true;
     scoreResult = result;
     renderScoreCard(result);
+    localStorage.setItem('lastScoreResult', JSON.stringify({ result, speakerName }));
     setStatus('scoreStatus', 'success', '✅ 採点完了！');
     document.getElementById('scoreCard').scrollIntoView({ behavior: 'smooth' });
   } catch (err) {
@@ -1004,6 +1023,17 @@ function renderScoreCard(r) {
   });
 
   document.getElementById('scoreCard').style.display = 'block';
+}
+
+// ─── 採点結果をクリア ───
+function clearScore() {
+  if (!confirm('採点結果をクリアしますか？')) return;
+  localStorage.removeItem('lastScoreResult');
+  scoreCompleted = false;
+  scoreResult = null;
+  if (window._radarChart) { window._radarChart.destroy(); window._radarChart = null; }
+  document.getElementById('scoreCard').style.display = 'none';
+  setStatus('scoreStatus', '', '');
 }
 
 // ─── 採点基準アコーディオン ───
