@@ -6,7 +6,7 @@ var SPREADSHEET_ID = '1Pxf4ueI_hRncMWV-mcZJd9R6uj_e_rTQJ9zmCHIaw5w';
 var CLAUDE_API_KEY = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
 
 // 自動送信する会場リスト
-var LINE_SEND_VENUES = ['佐世保'];
+var LINE_SEND_VENUES = ['佐世保', '佐世保広報'];
 
 // =============================================
 // メインエントリーポイント（統合版）
@@ -273,7 +273,9 @@ function sendWeeklyLine() {
 
 function sendLineForVenue(venue) {
   var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName(venue);
+  // 佐世保広報は佐世保シートのデータを使う
+  var sheetVenue = venue === '佐世保広報' ? '佐世保' : venue;
+  var sheet = ss.getSheetByName(sheetVenue);
 
   if (!sheet) {
     Logger.log(venue + 'のシートが存在しません');
@@ -302,8 +304,8 @@ function sendLineForVenue(venue) {
     return;
   }
 
-  var tokenKey   = 'LINE_TOKEN_' + venue;
-  var groupIdKey = 'LINE_GROUP_ID_' + venue;
+  var tokenKey   = 'LINE_TOKEN_佐世保';
+  var groupIdKey = 'LINE_GROUP_ID_佐世保広報';
   var token      = PropertiesService.getScriptProperties().getProperty(tokenKey);
   var groupId    = PropertiesService.getScriptProperties().getProperty(groupIdKey);
 
@@ -437,4 +439,29 @@ function testSendLatest() {
 
   Logger.log('テスト送信完了: ' + response.getResponseCode());
   Logger.log('投稿済みフラグは変更していません✅');
+}
+
+function testSendKohoGroup() {
+  var token   = PropertiesService.getScriptProperties().getProperty('LINE_TOKEN_佐世保');
+  var groupId = PropertiesService.getScriptProperties().getProperty('LINE_GROUP_ID_佐世保広報');
+
+  if (!token)   { Logger.log('トークン未設定'); return; }
+  if (!groupId) { Logger.log('グループID未設定'); return; }
+
+  var testText = 'コケコッコーー！\nこれはテスト送信です🐔\n正常に届いていたら設定完了！';
+
+  var response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+    method: 'post',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    },
+    payload: JSON.stringify({
+      to: groupId,
+      messages: [{ type: 'text', text: testText }]
+    }),
+    muteHttpExceptions: true
+  });
+
+  Logger.log('佐世保広報テスト結果: ' + response.getResponseCode() + ' ' + response.getContentText());
 }
