@@ -971,7 +971,7 @@ function renderScoreCard(r) {
       labels: radarLabels,
       datasets: [{
         data: radarData,
-        backgroundColor: 'rgba(232,130,12,0.18)',
+        backgroundColor: 'rgba(232,130,12,0.35)',
         borderColor: '#E8820C',
         borderWidth: 2,
         pointBackgroundColor: '#E8820C',
@@ -991,13 +991,13 @@ function renderScoreCard(r) {
           ticks: { display: false },
           pointLabels: {
             font: { size: 12, weight: 'bold' },
-            color: isDark ? '#ffffff' : '#222222',
+            color: '#333333',
             callback: function(label, index) {
               return label + ' ' + radarData[index];
             }
           },
-          grid: { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)', lineWidth: 1.5 },
-          angleLines: { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)', lineWidth: 1.5 }
+          grid: { color: 'rgba(180,120,0,0.5)', lineWidth: 1.5 },
+          angleLines: { color: 'rgba(180,120,0,0.5)', lineWidth: 1.5 }
         }
       }
     }
