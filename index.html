@@ -898,11 +898,18 @@ async function doScore() {
 
 // ─── 採点結果を描画 ───
 function renderScoreCard(r) {
-  document.getElementById('scoreTotal').textContent = r.total || '--';
-
   const s = r.scores || {};
 
-  const fluencyScore = Math.min(s.fluency || 0, 15);
+  const fluencyScore     = Math.min(s.fluency     || 0, 15);
+  const structureScore   = Math.min(s.structure   || 0, 20);
+  const specificityScore = Math.min(s.specificity || 0, 15);
+  const wordingScore     = Math.min(s.wording     || 0, 15);
+  const engagementScore  = Math.min(s.engagement  || 0, 15);
+  const ethicsScore      = Math.min(s.ethics      || 0, 10);
+  const passionScore     = Math.min(s.passion     || 0, 10);
+
+  const clippedTotal = fluencyScore + structureScore + specificityScore + wordingScore + engagementScore + ethicsScore + passionScore;
+  document.getElementById('scoreTotal').textContent = clippedTotal;
 
   // タグ生成
   const tags = [];
@@ -938,21 +945,20 @@ function renderScoreCard(r) {
 
   // 横棒グラフ
   const items = [
-    { label: '流暢さ', key: 'fluency', max: 15 },
-    { label: '構成', key: 'structure', max: 20 },
-    { label: '具体性', key: 'specificity', max: 15 },
-    { label: '言葉', key: 'wording', max: 15 },
-    { label: '働きかけ', key: 'engagement', max: 15 },
-    { label: '倫理度', key: 'ethics', max: 10 },
-    { label: '熱量', key: 'passion', max: 10 },
+    { label: '流暢さ', val: fluencyScore,     max: 15 },
+    { label: '構成',   val: structureScore,   max: 20 },
+    { label: '具体性', val: specificityScore, max: 15 },
+    { label: '言葉',   val: wordingScore,     max: 15 },
+    { label: '働きかけ', val: engagementScore, max: 15 },
+    { label: '倫理度', val: ethicsScore,      max: 10 },
+    { label: '熱量',   val: passionScore,     max: 10 },
   ];
   const barHtml = items.map(item => {
-    const val = s[item.key] || 0;
-    const pct = Math.round((val / item.max) * 100);
+    const pct = Math.round((item.val / item.max) * 100);
     return `<div class="bar-row">
       <span class="bar-label">${item.label}</span>
       <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-      <span class="bar-score">${val}/${item.max}</span>
+      <span class="bar-score">${item.val}/${item.max}</span>
     </div>`;
   }).join('');
   document.getElementById('barChart').innerHTML = barHtml;
@@ -978,7 +984,7 @@ function renderScoreCard(r) {
     { label: '倫理度(/10)', key: 'ethics', max: 10 },
     { label: '熱量(/10)', key: 'passion', max: 10 },
   ];
-  const radarData = items2.map(item => s[item.key] || 0);
+  const radarData = [fluencyScore, structureScore, specificityScore, wordingScore, engagementScore, ethicsScore, passionScore];
   const radarLabels = items2.map(item => item.label);
 
   if (window._radarChart) window._radarChart.destroy();
