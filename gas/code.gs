@@ -155,7 +155,7 @@ function handleScore(data) {
     + '採点者: ' + speakerName + 'さん\n\n'
     + '【講話テキスト】\n' + transcription + '\n\n'
     + '【採点基準】\n'
-    + '- fluency（流暢さ・フィラー語の少なさ）: 0〜15点\n'
+    + '- fluency（流暢さ・フィラー語の少なさ）: 0〜20点\n'
     + '- structure（構成の明確さ）: 0〜20点\n'
     + '- specificity（内容の具体性）: 0〜15点\n'
     + '- wording（言葉の選び方）: 0〜15点\n'

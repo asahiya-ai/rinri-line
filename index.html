@@ -540,7 +540,7 @@ textarea { resize: vertical; min-height: 130px; }
           <th style="padding:6px 8px; text-align:center; color:#5D3A00;">配点</th>
           <th style="padding:6px 8px; text-align:left; color:#5D3A00;">基準</th>
         </tr>
-        <tr><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">流暢さ</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">15点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">フィラー語が少なくスムーズか</td></tr>
+        <tr><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">流暢さ</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">20点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">フィラー語が少なくスムーズか</td></tr>
         <tr style="background:#FAFAFA;"><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">構成</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">20点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">導入→本題→まとめの流れがあるか</td></tr>
         <tr><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">具体性</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">15点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">体験談・数字・エピソードがあるか</td></tr>
         <tr style="background:#FAFAFA;"><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">言葉</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">15点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">伝わりやすい言葉を選んでいるか</td></tr>
@@ -573,6 +573,9 @@ textarea { resize: vertical; min-height: 130px; }
               <span class="score-label">/ 100点</span>
             </div>
             <span style="font-size:0.75rem; color:var(--text-light);">総合点</span>
+            <div style="margin-top:10px; text-align:center;">
+              <span style="font-size:1.3rem; font-weight:bold; color:var(--text);">文字数：<span id="scoreCharCount">--</span>字</span>
+            </div>
           </div>
           <div style="flex:1; min-width:200px; position:relative; height:200px;">
             <canvas id="radarChart" role="img" aria-label="7項目のレーダーチャート"></canvas>
@@ -900,7 +903,7 @@ async function doScore() {
 function renderScoreCard(r) {
   const s = r.scores || {};
 
-  const fluencyScore     = Math.min(s.fluency     || 0, 15);
+  const fluencyScore     = Math.min(s.fluency     || 0, 20);
   const structureScore   = Math.min(s.structure   || 0, 20);
   const specificityScore = Math.min(s.specificity || 0, 15);
   const wordingScore     = Math.min(s.wording     || 0, 15);
@@ -908,8 +911,14 @@ function renderScoreCard(r) {
   const ethicsScore      = Math.min(s.ethics      || 0, 10);
   const passionScore     = Math.min(s.passion     || 0, 10);
 
-  const clippedTotal = fluencyScore + structureScore + specificityScore + wordingScore + engagementScore + ethicsScore + passionScore;
+  const rawTotal = fluencyScore + structureScore + specificityScore + wordingScore + engagementScore + ethicsScore + passionScore;
+  const clippedTotal = Math.round(60 + rawTotal * 0.4);
   document.getElementById('scoreTotal').textContent = clippedTotal;
+
+  // 文字数カウント（空白除く）
+  const transcriptionText = document.getElementById('transcriptionReadonly').value || '';
+  const charCount = transcriptionText.replace(/\s/g, '').length;
+  document.getElementById('scoreCharCount').textContent = charCount.toLocaleString();
 
   // タグ生成
   const tags = [];
@@ -928,7 +937,7 @@ function renderScoreCard(r) {
   // フィラー
   const fc = r.filler_count || {};
   document.getElementById('fillerStat').innerHTML =
-    `流暢さ: <strong>${fluencyScore}/15点</strong>　（えー: ${fc.ee||0}回 / その: ${fc.sono||0}回 / あの: ${fc.ano||0}回）`;
+    `流暢さ: <strong>${fluencyScore}/20点</strong>　（えー: ${fc.ee||0}回 / その: ${fc.sono||0}回 / あの: ${fc.ano||0}回）`;
   const tagHtml = tags.map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
   document.getElementById('scoreTags').innerHTML = tagHtml || '<span class="tag tag-blue">採点完了</span>';
 
@@ -945,7 +954,7 @@ function renderScoreCard(r) {
 
   // 横棒グラフ
   const items = [
-    { label: '流暢さ', val: fluencyScore,     max: 15 },
+    { label: '流暢さ', val: fluencyScore,     max: 20 },
     { label: '構成',   val: structureScore,   max: 20 },
     { label: '具体性', val: specificityScore, max: 15 },
     { label: '言葉',   val: wordingScore,     max: 15 },
@@ -976,7 +985,7 @@ function renderScoreCard(r) {
 
   // レーダーチャート
   const items2 = [
-    { label: '流暢さ(/15)', key: 'fluency', max: 15 },
+    { label: '流暢さ(/20)', key: 'fluency', max: 20 },
     { label: '構成(/20)', key: 'structure', max: 20 },
     { label: '具体性(/15)', key: 'specificity', max: 15 },
     { label: '言葉(/15)', key: 'wording', max: 15 },
