@@ -112,6 +112,38 @@ function handleSummarize(data) {
   var speakerCount  = speakers.length;
   var speakerList   = speakers.map(function(s) { return '・' + s + 'さん'; }).join('\n');
 
+  // Teamsの文字起こしから三宅耕平の発言・ヘッダーを除外する前処理
+  var lines = transcription.split('\n');
+  var filtered = [];
+  var skipNext = false;
+
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+
+    // ヘッダー3行を除外（ファイル名・日付・長さ）
+    if (line.match(/^倫理.*会議-\d{8}/) ||
+        line.match(/^\d{4}年\d{1,2}月\d{1,2}日/) ||
+        line.match(/^\d+\s*分\s*\d+\s*秒/)) {
+      continue;
+    }
+
+    // 三宅耕平の名前行 → 次の発言行ごとスキップ
+    if (line.match(/^三宅\s*耕平/)) {
+      skipNext = true;
+      continue;
+    }
+
+    // 三宅耕平の発言行をスキップ
+    if (skipNext) {
+      skipNext = false;
+      continue;
+    }
+
+    filtered.push(line);
+  }
+
+  transcription = filtered.join('\n').trim();
+
   var systemPrompt = '倫理法人会のモーニングセミナーの講話を要約するアシスタントです。'
     + '必ず指定された講話者名を使って【○○さん】形式でヘッダーをつけてください。'
     + '文字起こし内に別の人名が出てきても、指定された名前を優先してください。';
