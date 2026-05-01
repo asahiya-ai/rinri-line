@@ -127,6 +127,14 @@ input:focus, textarea:focus {
 }
 .speaker-row input { flex: 1; margin-bottom: 0; }
 .speaker-suffix { font-size: 0.88rem; color: var(--text-light); white-space: nowrap; }
+.speaker-badge {
+  flex: 1;
+  padding: 10px 12px;
+  background: #F2F2F2;
+  border-radius: 9px;
+  font-size: 0.92rem;
+  color: var(--text);
+}
 .btn-remove {
   background: none;
   border: none;
@@ -477,8 +485,7 @@ textarea { resize: vertical; min-height: 130px; }
     <div class="card-title">🎤 講話者</div>
     <div id="speakerList">
       <div class="speaker-row">
-        <input type="text" class="speaker-input" placeholder="お名前（例：田中）">
-        <span class="speaker-suffix">さん</span>
+        <span class="speaker-badge">👤 講話者</span>
         <button class="btn-remove" onclick="removeSpeaker(this)" title="削除">×</button>
       </div>
     </div>
@@ -655,16 +662,8 @@ function syncTranscription() {
   document.getElementById('transcriptionReadonly').value = src;
 }
 
-// ─── 講話者名同期（最後の1人をセット） ───
-function syncSpeakerName() {
-  const speakerInputs = document.querySelectorAll('.speaker-input');
-  if (speakerInputs.length > 0) {
-    const lastSpeaker = speakerInputs[speakerInputs.length - 1];
-    if (lastSpeaker.value.trim()) {
-      document.getElementById('scoreSpeakerName').value = lastSpeaker.value.trim();
-    }
-  }
-}
+// ─── 講話者名同期（名前入力なしのため同期不要） ───
+function syncSpeakerName() {}
 
 // 今日の日付をデフォルトセット＆カスタム会場復元
 window.addEventListener('DOMContentLoaded', () => {
@@ -736,11 +735,9 @@ function addSpeaker() {
   const row = document.createElement('div');
   row.className = 'speaker-row';
   row.innerHTML = `
-    <input type="text" class="speaker-input" placeholder="お名前（例：田中）">
-    <span class="speaker-suffix">さん</span>
+    <span class="speaker-badge">👤 講話者</span>
     <button class="btn-remove" onclick="removeSpeaker(this)" title="削除">×</button>`;
   list.appendChild(row);
-  row.querySelector('input').focus();
 }
 
 // ─── 講話者 削除 ───
@@ -762,7 +759,7 @@ async function summarize() {
 
   if (!date) { alert('参加日を入力してください'); return; }
   if (!attendees) { alert('参加者数を入力してください'); return; }
-  if (speakers.length === 0) { alert('講話者名を入力してください'); return; }
+  if (speakers.length === 0) { alert('講話者を追加してください'); return; }
   if (!transcription) { alert('文字起こしテキストを貼り付けてください'); return; }
 
   setStatus('summarizeStatus', 'loading', '🐔 要約中です…少々お待ちください');
@@ -790,7 +787,7 @@ function buildLineMessage(date, attendees, speakers, summaries) {
   let blocks = '';
   speakers.forEach((name, i) => {
     const summary = (summaries && summaries[i]) ? summaries[i] : '（要約なし）';
-    const formattedSummary = summary.replace(/【[^】]+さん】/g, '$&\n');
+    const formattedSummary = summary.replace(/【[^】]+】/g, '$&\n');
     blocks += `${formattedSummary}\n\n`;
   });
   return `佐世保広報AIから自動でお知らせ\n\nコケコッコーー！\nおはようございます♪🐔\n\n明日金曜日はモーニングセミナーだよ！\n先週はこんな話があったよ✨\n\n${blocks.trim()}\n\n毎週金曜の朝はね、\n仕事にも人生にも使えるヒントと\n素敵な仲間との出会いが待ってるよ！☀️\n\nきっと「来てよかった！」って思える朝になるから\nぜひ一緒に過ごしましょ💛\n\n今週もあなたの笑顔に会えたら嬉しいな✨\n\n一緒に最高の朝をスタートしよう🐔✨`;
@@ -1092,11 +1089,10 @@ async function callGAS(payload) {
   return res.json();
 }
 
-// ─── 講話者名を取得 ───
+// ─── 講話者名を取得（名前なし・人数分「講話者」を返す） ───
 function getSpeakers() {
-  return Array.from(document.querySelectorAll('.speaker-input'))
-    .map(i => i.value.trim())
-    .filter(v => v);
+  const count = document.querySelectorAll('.speaker-row').length;
+  return Array(count).fill('講話者');
 }
 
 // ─── ステータス表示 ───
