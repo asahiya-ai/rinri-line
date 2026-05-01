@@ -911,9 +911,9 @@ function renderScoreCard(r) {
   const ethicsScore      = Math.min(s.ethics      || 0, 10);
   const passionScore     = Math.min(s.passion     || 0, 10);
 
-  const rawTotal = fluencyScore + structureScore + specificityScore + wordingScore + engagementScore + ethicsScore + passionScore;
-  const clippedTotal = Math.round(60 + rawTotal * 0.4);
-  document.getElementById('scoreTotal').textContent = clippedTotal;
+  const rawTotal = fluencyScore + structureScore + specificityScore
+                 + wordingScore + engagementScore + ethicsScore + passionScore;
+  document.getElementById('scoreTotal').textContent = rawTotal;
 
   // 文字数カウント（空白除く）
   const transcriptionText = document.getElementById('transcriptionReadonly').value || '';
