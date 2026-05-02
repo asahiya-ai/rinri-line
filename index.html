@@ -756,7 +756,7 @@ async function summarize() {
   const date = document.getElementById('seminarDate').value;
   const attendees = document.getElementById('attendees').value;
   const transcription = document.getElementById('transcription').value.trim();
-  const charLimit = parseInt(document.getElementById('charLimit').value) || 150;
+  const charLimit = parseInt(document.getElementById('charLimit').value) || 160;
   const speakers = getSpeakers();
 
   if (!date) { alert('参加日を入力してください'); return; }
