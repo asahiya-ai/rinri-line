@@ -485,7 +485,8 @@ textarea { resize: vertical; min-height: 130px; }
     <div class="card-title">🎤 講話者</div>
     <div id="speakerList">
       <div class="speaker-row">
-        <span class="speaker-badge">👤 講話者</span>
+        <span class="speaker-badge">👤</span>
+        <input type="text" placeholder="講話者名（スプレッドシート用）" />
         <button class="btn-remove" onclick="removeSpeaker(this)" title="削除">×</button>
       </div>
     </div>
@@ -735,7 +736,8 @@ function addSpeaker() {
   const row = document.createElement('div');
   row.className = 'speaker-row';
   row.innerHTML = `
-    <span class="speaker-badge">👤 講話者</span>
+    <span class="speaker-badge">👤</span>
+    <input type="text" placeholder="講話者名（スプレッドシート用）" />
     <button class="btn-remove" onclick="removeSpeaker(this)" title="削除">×</button>`;
   list.appendChild(row);
 }
@@ -1085,8 +1087,11 @@ async function callGAS(payload) {
 
 // ─── 講話者名を取得（名前なし・人数分「講話者」を返す） ───
 function getSpeakers() {
-  const count = document.querySelectorAll('.speaker-row').length;
-  return Array(count).fill('講話者');
+  const rows = document.querySelectorAll('.speaker-row');
+  return Array.from(rows).map(row => {
+    const input = row.querySelector('input[type="text"]');
+    return (input && input.value.trim()) ? input.value.trim() : '講話者';
+  });
 }
 
 // ─── ステータス表示 ───
