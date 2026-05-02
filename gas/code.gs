@@ -108,7 +108,7 @@ function callClaude(systemPrompt, userMessage) {
 function handleSummarize(data) {
   var speakers      = data.speakers;
   var transcription = data.transcription;
-  var charLimit     = data.charLimit || 150;
+  var charLimit     = data.charLimit || 200;
   var speakerCount  = speakers.length;
 
   // Teamsの文字起こしから三宅耕平の発言・ヘッダーを除外する前処理
@@ -146,19 +146,20 @@ function handleSummarize(data) {
   var systemPrompt = 'あなたはにわとり「リンちゃん」です。'
     + '倫理法人会モーニングセミナーの応援キャラクターとして、'
     + '明るく親しみやすい口調で講話を紹介します。'
-    + '個人的なエピソード（家族・健康・お金・人間関係など）の詳細はぼかして表現します。';
+    + '借金・失敗・病気など具体的なエピソードは読み手が引き込まれるようにそのまま伝えます。'
+    + 'ただし自殺・死にたいなどの直接的な表現は命の瀬戸際まで追い詰められたなどに言い換えます。';
 
   var userMessage = '以下のモーニングセミナー文字起こしを要約してください。\n\n'
     + '【ルール（必ず守ること）】\n'
-    + '・出力は【講話者さん】以降の本文部分だけを生成する\n'
+    + '・出力は本文部分だけを生成する\n'
     + '・冒頭あいさつ・締め文は生成しない（別途固定テキストで追加する）\n'
     + '・【講話者さん】ヘッダーは出力に含めない（呼び出し側で追加する）\n'
-    + '・講話の核心となる名言や気づきを一つだけ取り上げ、語りかけ口調で深掘りする\n'
-    + '・「…」を使って余韻を残す\n'
-    + '・200文字前後\n'
-    + '・個人的エピソード（借金・病気・死・自殺・離婚・家族の不幸など）は\n'
-    + '  絶対に具体的に書かない。「言葉にできないほどの試練を経て」\n'
-    + '  「深い闇を乗り越えた経験から」などの抽象的表現に置き換える\n'
+    + '・借金・失敗・病気・苦労などの具体的なエピソードはそのまま書いてOK\n'
+    + '・ただし「自殺」「死にたい」などの直接的な表現は\n'
+    + '  「命の瀬戸際まで追い詰められた」など少しぼかした表現に置き換える\n'
+    + '・「この人の話、もっと聞きたい！」と思わせる引きのある書き方をする\n'
+    + '・語りかけ口調で、テンポよく読めるように書く\n'
+    + '・' + charLimit + '文字前後\n'
     + '・「続きはセミナーで」などの宣伝的な表現は一切使わない\n\n'
     + '文字起こし:\n' + transcription + '\n\n'
     + 'JSON形式のみで回答してください：\n'
@@ -341,26 +342,26 @@ function sendWeeklyLine() {
 }
 
 function sendLineForVenue(venue) {
-  var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
-  // 佐世保広報は佐世保シートのデータを使う
-  var sheetVenue = venue === '佐世保広報' ? '佐世保' : venue;
-  var sheet = ss.getSheetByName(sheetVenue);
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const ss        = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheetVenue = venue === '佐世保広報' ? '佐世保' : venue;
+  const sheet     = ss.getSheetByName(sheetVenue);
 
   if (!sheet) {
     Logger.log(venue + 'のシートが存在しません');
     return;
   }
 
-  var data = sheet.getDataRange().getValues();
+  const data = sheet.getDataRange().getValues();
   if (data.length <= 1) {
     Logger.log(venue + ': 投稿するデータがありません');
     return;
   }
 
-  var targetRow = -1;
-  var lineText  = '';
+  let targetRow = -1;
+  let lineText  = '';
 
-  for (var i = data.length - 1; i >= 1; i--) {
+  for (let i = data.length - 1; i >= 1; i--) {
     if (!data[i][6]) {
       targetRow = i + 1;
       lineText  = data[i][4];
@@ -373,46 +374,50 @@ function sendLineForVenue(venue) {
     return;
   }
 
-  var tokenKey   = 'LINE_TOKEN_佐世保';
-  var groupIdKey = 'LINE_GROUP_ID_佐世保広報';
-  var token      = PropertiesService.getScriptProperties().getProperty(tokenKey);
-  var groupId    = PropertiesService.getScriptProperties().getProperty(groupIdKey);
+  const tokenKey   = 'LINE_TOKEN_佐世保';
+  const groupIdKey = 'LINE_GROUP_ID_佐世保広報';
+  const token      = scriptProperties.getProperty(tokenKey);
+  const groupId    = scriptProperties.getProperty(groupIdKey);
 
   if (!token) {
     Logger.log(venue + ': LINEトークン未設定（キー: ' + tokenKey + '）');
     return;
   }
-
   if (!groupId) {
     Logger.log(venue + ': グループID未設定（キー: ' + groupIdKey + '）');
     return;
   }
 
-  var imageUrl = 'https://asahiya-ai.com/rinri-line/images/flyer.png';
+  const imageUrl = 'https://asahiya-ai.com/rinri-line/images/flyer.png';
 
-  // push送信（グループ指定）
-  var response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
-    method: 'post',
-    headers: {
-      'Authorization': 'Bearer ' + token,
-      'Content-Type': 'application/json'
-    },
-    payload: JSON.stringify({
-      to: groupId,
-      messages: [
-        { type: 'text', text: lineText },
-        { type: 'image', originalContentUrl: imageUrl, previewImageUrl: imageUrl }
-      ]
-    }),
-    muteHttpExceptions: true
-  });
+  try {
+    const response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+      method: 'post',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify({
+        to: groupId,
+        messages: [
+          { type: 'text', text: lineText },
+          { type: 'image', originalContentUrl: imageUrl, previewImageUrl: imageUrl }
+        ]
+      }),
+      muteHttpExceptions: true
+    });
 
-  var status = response.getResponseCode();
-  Logger.log(venue + ' LINE送信: ' + status);
+    const status = response.getResponseCode();
+    Logger.log(venue + ' LINE送信ステータス: ' + status);
 
-  if (status === 200) {
-    sheet.getRange(targetRow, 7).setValue(true);
-    Logger.log(venue + ': 送信成功！行 ' + targetRow);
+    if (status === 200) {
+      sheet.getRange(targetRow, 7).setValue(true);
+      Logger.log(venue + ': 送信成功！行 ' + targetRow);
+    } else {
+      Logger.log(venue + ': 送信失敗 - ' + response.getContentText());
+    }
+  } catch (e) {
+    Logger.log(venue + ': 致命的なエラー - ' + e.toString());
   }
 }
 
@@ -441,40 +446,57 @@ function setWeeklyTrigger() {
 // =============================================
 
 function testLineSend() {
-  var venue      = 'テスト';
-  var tokenKey   = 'LINE_TOKEN_佐世保';
-  var groupIdKey = 'LINE_GROUP_ID_テスト';
-  var token      = PropertiesService.getScriptProperties().getProperty(tokenKey);
-  var groupId    = PropertiesService.getScriptProperties().getProperty(groupIdKey);
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const tokenKey   = 'LINE_TOKEN_佐世保';
+  const groupIdKey = 'LINE_GROUP_ID_テスト';
+  const token      = scriptProperties.getProperty(tokenKey);
+  const groupId    = scriptProperties.getProperty(groupIdKey);
 
-  if (!token)   { Logger.log('トークン未設定'); return; }
-  if (!groupId) { Logger.log('グループID未設定'); return; }
+  if (!token)   { Logger.log('エラー: ' + tokenKey + ' が設定されていません'); return; }
+  if (!groupId) { Logger.log('エラー: ' + groupIdKey + ' が設定されていません'); return; }
 
-  var testText = 'コケコッコーー！\nおはようございます♪🐔\n\nこれはテスト送信です。正常に届いていたら設定完了！';
+  const testText = 'コケコッコーー！\nおはようございます♪🐔\n\nこれはテスト送信です。正常に届いていたら設定完了！';
 
-  var response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
-    method: 'post',
-    headers: {
-      'Authorization': 'Bearer ' + token,
-      'Content-Type': 'application/json'
-    },
-    payload: JSON.stringify({
-      to: groupId,
-      messages: [{ type: 'text', text: testText }]
-    }),
-    muteHttpExceptions: true
-  });
+  try {
+    const response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+      method: 'post',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify({
+        to: groupId,
+        messages: [{ type: 'text', text: testText }]
+      }),
+      muteHttpExceptions: true
+    });
 
-  Logger.log('テスト結果: ' + response.getResponseCode() + ' ' + response.getContentText());
+    const code = response.getResponseCode();
+    if (code === 200) {
+      Logger.log('✅ テスト送信成功！');
+    } else {
+      Logger.log('❌ テスト送信失敗 ステータス: ' + code);
+      Logger.log('詳細: ' + response.getContentText());
+    }
+  } catch (e) {
+    Logger.log('致命的なエラー: ' + e.toString());
+  }
 }
 
 function testSendLatest() {
-  var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('佐世保');
-  var data  = sheet.getDataRange().getValues();
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('佐世保');
 
-  var lineText = '';
-  for (var i = data.length - 1; i >= 1; i--) {
+  if (!sheet) {
+    Logger.log('エラー: 佐世保シートが見つかりません');
+    return;
+  }
+
+  const data = sheet.getDataRange().getValues();
+  let lineText = '';
+
+  for (let i = data.length - 1; i >= 1; i--) {
     if (!data[i][6]) {
       lineText = data[i][4];
       break;
@@ -486,51 +508,74 @@ function testSendLatest() {
     return;
   }
 
-  var token    = PropertiesService.getScriptProperties().getProperty('LINE_TOKEN_佐世保');
-  var groupId  = PropertiesService.getScriptProperties().getProperty('LINE_GROUP_ID_テスト');
-  var imageUrl = 'https://asahiya-ai.com/rinri-line/images/flyer.png';
+  const token    = scriptProperties.getProperty('LINE_TOKEN_佐世保');
+  const groupId  = scriptProperties.getProperty('LINE_GROUP_ID_テスト');
+  const imageUrl = 'https://asahiya-ai.com/rinri-line/images/flyer.png';
 
-  var response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
-    method: 'post',
-    headers: {
-      'Authorization': 'Bearer ' + token,
-      'Content-Type': 'application/json'
-    },
-    payload: JSON.stringify({
-      to: groupId,
-      messages: [
-        { type: 'text', text: lineText },
-        { type: 'image', originalContentUrl: imageUrl, previewImageUrl: imageUrl }
-      ]
-    }),
-    muteHttpExceptions: true
-  });
+  if (!token)   { Logger.log('エラー: LINE_TOKEN_佐世保 が設定されていません'); return; }
+  if (!groupId) { Logger.log('エラー: LINE_GROUP_ID_テスト が設定されていません'); return; }
 
-  Logger.log('テスト送信完了: ' + response.getResponseCode());
-  Logger.log('投稿済みフラグは変更していません✅');
+  try {
+    const response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+      method: 'post',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify({
+        to: groupId,
+        messages: [
+          { type: 'text', text: lineText },
+          { type: 'image', originalContentUrl: imageUrl, previewImageUrl: imageUrl }
+        ]
+      }),
+      muteHttpExceptions: true
+    });
+
+    const code = response.getResponseCode();
+    if (code === 200) {
+      Logger.log('✅ テスト送信成功！（投稿済みフラグは変更していません）');
+    } else {
+      Logger.log('❌ テスト送信失敗 ステータス: ' + code);
+      Logger.log('詳細: ' + response.getContentText());
+    }
+  } catch (e) {
+    Logger.log('致命的なエラー: ' + e.toString());
+  }
 }
 
 function testSendKohoGroup() {
-  var token   = PropertiesService.getScriptProperties().getProperty('LINE_TOKEN_佐世保');
-  var groupId = PropertiesService.getScriptProperties().getProperty('LINE_GROUP_ID_佐世保広報');
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const token   = scriptProperties.getProperty('LINE_TOKEN_佐世保');
+  const groupId = scriptProperties.getProperty('LINE_GROUP_ID_佐世保広報');
 
-  if (!token)   { Logger.log('トークン未設定'); return; }
-  if (!groupId) { Logger.log('グループID未設定'); return; }
+  if (!token)   { Logger.log('エラー: LINE_TOKEN_佐世保 が設定されていません'); return; }
+  if (!groupId) { Logger.log('エラー: LINE_GROUP_ID_佐世保広報 が設定されていません'); return; }
 
-  var testText = 'コケコッコーー！\nこれはテスト送信です🐔\n正常に届いていたら設定完了！';
+  const testText = 'コケコッコーー！\nこれはテスト送信です🐔\n正常に届いていたら設定完了！';
 
-  var response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
-    method: 'post',
-    headers: {
-      'Authorization': 'Bearer ' + token,
-      'Content-Type': 'application/json'
-    },
-    payload: JSON.stringify({
-      to: groupId,
-      messages: [{ type: 'text', text: testText }]
-    }),
-    muteHttpExceptions: true
-  });
+  try {
+    const response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+      method: 'post',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify({
+        to: groupId,
+        messages: [{ type: 'text', text: testText }]
+      }),
+      muteHttpExceptions: true
+    });
 
-  Logger.log('佐世保広報テスト結果: ' + response.getResponseCode() + ' ' + response.getContentText());
+    const code = response.getResponseCode();
+    if (code === 200) {
+      Logger.log('✅ 佐世保広報テスト送信成功！');
+    } else {
+      Logger.log('❌ 佐世保広報テスト送信失敗 ステータス: ' + code);
+      Logger.log('詳細: ' + response.getContentText());
+    }
+  } catch (e) {
+    Logger.log('致命的なエラー: ' + e.toString());
+  }
 }
