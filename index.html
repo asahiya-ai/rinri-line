@@ -548,13 +548,13 @@ textarea { resize: vertical; min-height: 130px; }
           <th style="padding:6px 8px; text-align:center; color:#5D3A00;">配点</th>
           <th style="padding:6px 8px; text-align:left; color:#5D3A00;">基準</th>
         </tr>
-        <tr><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">流暢さ</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">20点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">フィラー語が少なくスムーズか</td></tr>
+        <tr><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">流暢さ</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">15点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">フィラー語が少なくスムーズか</td></tr>
         <tr style="background:#FAFAFA;"><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">構成</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">20点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">導入→本題→まとめの流れがあるか</td></tr>
         <tr><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">具体性</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">15点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">体験談・数字・エピソードがあるか</td></tr>
-        <tr style="background:#FAFAFA;"><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">言葉</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">15点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">伝わりやすい言葉を選んでいるか</td></tr>
-        <tr><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">働きかけ</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">15点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">問いかけや共感を呼ぶ表現があるか</td></tr>
-        <tr style="background:#FAFAFA;"><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">倫理度</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">10点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">倫理法人会の精神に沿っているか</td></tr>
-        <tr><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">熱量</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">10点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">誠実さや情熱が伝わってくるか</td></tr>
+        <tr style="background:#FAFAFA;"><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">言葉</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">10点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">伝わりやすい言葉を選んでいるか</td></tr>
+        <tr><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">働きかけ</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">10点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">問いかけや共感を呼ぶ表現があるか</td></tr>
+        <tr style="background:#FAFAFA;"><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">倫理度</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">15点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">倫理法人会の精神に沿っているか</td></tr>
+        <tr><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">熱量</td><td style="padding:6px 8px; text-align:center; border-top:1px solid #E5D9C0;">15点</td><td style="padding:6px 8px; border-top:1px solid #E5D9C0;">誠実さや情熱が伝わってくるか</td></tr>
       </table>
     </div>
 
@@ -593,7 +593,7 @@ textarea { resize: vertical; min-height: 130px; }
 
       <!-- フィラー・速度 -->
       <div class="score-stats">
-        <span class="stat-chip" id="fillerStat">えー: -- / その: -- / あの: --</span>
+        <span class="stat-chip" id="fillerStat">えー: -- / あの: --</span>
       </div>
 
       <!-- タグ -->
@@ -896,13 +896,13 @@ async function doScore() {
 function renderScoreCard(r) {
   const s = r.scores || {};
 
-  const fluencyScore     = Math.min(s.fluency     || 0, 20);
+  const fluencyScore     = Math.min(s.fluency     || 0, 15);
   const structureScore   = Math.min(s.structure   || 0, 20);
   const specificityScore = Math.min(s.specificity || 0, 15);
-  const wordingScore     = Math.min(s.wording     || 0, 15);
-  const engagementScore  = Math.min(s.engagement  || 0, 15);
-  const ethicsScore      = Math.min(s.ethics      || 0, 10);
-  const passionScore     = Math.min(s.passion     || 0, 10);
+  const wordingScore     = Math.min(s.wording     || 0, 10);
+  const engagementScore  = Math.min(s.engagement  || 0, 10);
+  const ethicsScore      = Math.min(s.ethics      || 0, 15);
+  const passionScore     = Math.min(s.passion     || 0, 15);
 
   const rawTotal = fluencyScore + structureScore + specificityScore
                  + wordingScore + engagementScore + ethicsScore + passionScore;
@@ -930,7 +930,7 @@ function renderScoreCard(r) {
   // フィラー
   const fc = r.filler_count || {};
   document.getElementById('fillerStat').innerHTML =
-    `流暢さ: <strong>${fluencyScore}/20点</strong>　（えー: ${fc.ee||0}回 / その: ${fc.sono||0}回 / あの: ${fc.ano||0}回）`;
+    `流暢さ: <strong>${fluencyScore}/15点</strong>　（えー: ${fc.ee||0}回 / あの: ${fc.ano||0}回　密度: ${r.filler_density||0}回/1000文字　評価: ${r.filler_level||''}）`;
   const tagHtml = tags.map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
   document.getElementById('scoreTags').innerHTML = tagHtml || '<span class="tag tag-blue">採点完了</span>';
 
@@ -947,13 +947,13 @@ function renderScoreCard(r) {
 
   // 横棒グラフ
   const items = [
-    { label: '流暢さ', val: fluencyScore,     max: 20 },
+    { label: '流暢さ', val: fluencyScore,     max: 15 },
     { label: '構成',   val: structureScore,   max: 20 },
     { label: '具体性', val: specificityScore, max: 15 },
-    { label: '言葉',   val: wordingScore,     max: 15 },
-    { label: '働きかけ', val: engagementScore, max: 15 },
-    { label: '倫理度', val: ethicsScore,      max: 10 },
-    { label: '熱量',   val: passionScore,     max: 10 },
+    { label: '言葉',   val: wordingScore,     max: 10 },
+    { label: '働きかけ', val: engagementScore, max: 10 },
+    { label: '倫理度', val: ethicsScore,      max: 15 },
+    { label: '熱量',   val: passionScore,     max: 15 },
   ];
   const barHtml = items.map(item => {
     const pct = Math.round((item.val / item.max) * 100);
@@ -977,21 +977,14 @@ function renderScoreCard(r) {
     (document.getElementById('scoreSpeakerName').value.trim() || '講話者') + 'さん';
 
   // レーダーチャート
-  const items2 = [
-    { label: '流暢さ(/20)', key: 'fluency', max: 20 },
-    { label: '構成(/20)', key: 'structure', max: 20 },
-    { label: '具体性(/15)', key: 'specificity', max: 15 },
-    { label: '言葉(/15)', key: 'wording', max: 15 },
-    { label: '働きかけ(/15)', key: 'engagement', max: 15 },
-    { label: '倫理度(/10)', key: 'ethics', max: 10 },
-    { label: '熱量(/10)', key: 'passion', max: 10 },
-  ];
-  const radarData = [fluencyScore, structureScore, specificityScore, wordingScore, engagementScore, ethicsScore, passionScore];
-  const radarLabels = items2.map(item => item.label);
+  const maxScores = [15, 20, 15, 10, 10, 15, 15];
+  const radarData = [fluencyScore, structureScore, specificityScore, wordingScore, engagementScore, ethicsScore, passionScore]
+    .map((val, i) => Math.round((val / maxScores[i]) * 100));
 
   if (window._radarChart) window._radarChart.destroy();
   const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
   const textColor = isDark ? '#ccc' : '#555';
+  const radarLabels = ['流暢さ', '構成', '具体性', '言葉', '働きかけ', '倫理度', '熱量'];
   window._radarChart = new Chart(document.getElementById('radarChart'), {
     type: 'radar',
     data: {
@@ -1015,12 +1008,15 @@ function renderScoreCard(r) {
       scales: {
         r: {
           min: 0,
+          max: 100,
           ticks: { display: false },
           pointLabels: {
             font: { size: 12, weight: 'bold' },
             color: '#333333',
             callback: function(label, index) {
-              return label + ' ' + radarData[index];
+              const actual = [fluencyScore, structureScore, specificityScore, wordingScore, engagementScore, ethicsScore, passionScore][index];
+              const maxVal = [15, 20, 15, 10, 10, 15, 15][index];
+              return label + ` (${actual}/${maxVal})`;
             }
           },
           grid: { color: 'rgba(180,120,0,0.5)', lineWidth: 1.5 },

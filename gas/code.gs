@@ -3,7 +3,7 @@
 // =============================================
 
 var SPREADSHEET_ID = '1Pxf4ueI_hRncMWV-mcZJd9R6uj_e_rTQJ9zmCHIaw5w';
-var CLAUDE_API_KEY = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
+var GEMINI_API_KEY = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
 
 // 自動送信する会場リスト
 var LINE_SEND_VENUES = ['佐世保', '佐世保広報'];
@@ -80,25 +80,26 @@ function respond(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-function callClaude(systemPrompt, userMessage) {
-  var response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+function callGemini(systemPrompt, userMessage) {
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_API_KEY;
+  var response = UrlFetchApp.fetch(url, {
     method: 'post',
     headers: {
-      'x-api-key': CLAUDE_API_KEY,
-      'anthropic-version': '2023-06-01',
       'content-type': 'application/json'
     },
     payload: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }]
+      contents: [
+        { role: 'user', parts: [{ text: systemPrompt + '\n\n' + userMessage }] }
+      ],
+      generationConfig: {
+        maxOutputTokens: 8192
+      }
     }),
     muteHttpExceptions: true
   });
   var responseData = JSON.parse(response.getContentText());
-  if (responseData.error) throw new Error('Claude APIエラー: ' + responseData.error.message);
-  return responseData.content[0].text;
+  if (responseData.error) throw new Error('Gemini APIエラー: ' + responseData.error.message);
+  return responseData.candidates[0].content.parts[0].text;
 }
 
 // =============================================
@@ -142,30 +143,43 @@ function handleSummarize(data) {
   }
 
   transcription = filtered.join('\n').trim();
+  
+var systemPrompt = 'あなたは倫理法人会モーニングセミナーの応援キャラクターです。'
+  + '講話の要約を、分かりやすく簡潔に伝わるストーリー（①苦労 → ②転機 → ③学び）として再構成してください。'
+  + '目的は「内容が理解できて、興味も湧く要約」を作ることです。'
+  + '【重要：スタイル】'
+  + '・段落は使わず、改行なしで1つの文章として出力する（重要）'
+  + '・内容はしっかり伝える（重要）'
+  + '・細かい描写は省き、分かりやすく簡潔にまとめる'
+  + '・過度にぼかしたり演出しすぎない（自然な説明寄り）'
+  + '・感情は適度に入れるが、読みやすさを優先する'
+  + '・借金などの苦労は「深い悩み」などと適度に抽象化する'
+  + '・一読で全体像が理解できる文章にする'
+  + '・指定文字数に合わせて情報量を調整する（重要）'
+  + '・返答は必ずJSON形式のみで行い、説明文や前置きは一切不要です。';
 
-  var systemPrompt = 'あなたは広報用AIチャットボットです。'
-    + '倫理法人会モーニングセミナーの応援キャラクターとして、'
-    + '明るく親しみやすい口調で講話を紹介します。'
-    + '借金・失敗・病気など具体的なエピソードは読み手が引き込まれるようにそのまま伝えます。'
-    + 'ただし自殺・死にたいなどの直接的な表現は追い詰められたなどに言い換えます。';
+var userMessage = '以下の文字起こしから、思わず参加したくなるような要約を作成してください。\n\n'
+  + '【禁止ルール】\n'
+  + '・挨拶、自己紹介、見出し、締めくくりの定型句はすべて禁止。\n'
+  + '・改行は禁止（必ず1つの文章で出力）\n'
+  + '・数字や具体的な場所、固有名詞は極力避ける。\n'
+  + '・保険金・遺書・具体的な自殺の描写は厳禁。\n\n'
+  + '【構成ルール】\n'
+  + '・①苦労 → ②転機 → ③学び の流れで自然につなげる。\n'
+  + '・説明しすぎず、簡潔にまとめる。\n'
+  + '・最後に軽く印象に残る一文を入れる（締めすぎない）。\n'
+  + '・文字数は厳守：' + charLimit + '文字前後（±10文字以内）で出力すること（重要）\n'
+  + '・指定文字数に近づけるため、内容を追加または削減して調整すること（重要）\n'
+  + '・短すぎる要約は禁止（情報量を確保する）\n\n'
+  + '文字起こし:\n' + transcription + '\n\n'
+  + 'JSON形式のみで回答：\n'
+  + '{"summaries": ["要約テキスト"]}';
 
-  var userMessage = '以下のモーニングセミナー文字起こしを要約してください。\n\n'
-    + '【ルール（必ず守ること）】\n'
-    + '・出力は本文部分だけを生成する\n'
-    + '・冒頭あいさつ・締め文は生成しない（別途固定テキストで追加する）\n'
-    + '・【講話者さん】ヘッダーは出力に含めない（呼び出し側で追加する）\n'
-    + '・失敗・苦労・病気などのエピソードはそのまま書いてOK\n'
-    + '・ただし「自殺」「死にたい」などの直接的な表現は「深く悩む」など少しぼかした表現に置き換える\n'
-    + '・「この人の話、もっと聞きたい！」と思わせる引きのある書き方をする\n'
-    + '・語りかけ口調で、テンポよく読めるように書く\n'
-    + '・「続きはセミナーで」などの宣伝的な表現は一切使わない\n\n'
-    + '・必ず' + charLimit + '文字以内で書くこと。これは絶対に守ること\n'
-    + '・文字数を超えた場合は内容を削って短くすること\n\n'
-    + '文字起こし:\n' + transcription + '\n\n'
-    + 'JSON形式のみで回答してください：\n'
-    + '{"summaries": ["1人目の本文テキスト", "2人目の本文テキスト"]}';
+  function truncate(text) {
+    return text.length > charLimit ? text.substring(0, charLimit) + '…' : text;
+  }
 
-  var text = callClaude(systemPrompt, userMessage);
+  var text = callGemini(systemPrompt, userMessage);
   var jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('要約の解析に失敗しました: ' + text.substring(0, 200));
 
@@ -183,7 +197,7 @@ function handleSummarize(data) {
     + 'ぜひ一緒に過ごしましょ💛';
 
   var assembled = parsed.summaries.map(function(body) {
-    return header + '【講話者さん】\n' + body + footer;
+    return header + '【講話者さん】\n' + truncate(body) + footer;
   });
 
   return { summaries: assembled };
@@ -198,9 +212,8 @@ function handleScore(data) {
   var speakerName = data.speakerName || '講話者';
 
   var fillerCount = {
-    ee:   (transcription.match(/えー|ええ|えーと/g) || []).length,
-    sono: (transcription.match(/その|そのー/g) || []).length,
-    ano:  (transcription.match(/あのー|あの、|あのう/g) || []).length
+    ee:  (transcription.match(/えー|ええ|えーと/g) || []).length,
+    ano: (transcription.match(/あのー|あの、|あのう/g) || []).length
   };
 
   var systemPrompt = '倫理法人会のモーニングセミナー講話を採点するプロのスピーチコーチです。'
@@ -213,24 +226,39 @@ function handleScore(data) {
     ? '※この講話には品位を損なう表現が含まれています。adviceに必ず「MSセミナーでは、品のある話や言葉遣いを心がけると、さらに信頼感が高まりますよ😊」という趣旨の一文を加えてください。'
     : '';
 
+  var fillerTotal = fillerCount.ee + fillerCount.ano;
+  var transcriptionLen = transcription.replace(/\s/g, '').length;
+  var fillerDensity = transcriptionLen > 0
+    ? Math.round((fillerTotal / transcriptionLen) * 1000 * 10) / 10
+    : 0;
+  var fillerLevel = fillerDensity < 3 ? '優秀(15点推奨)'
+    : fillerDensity < 7  ? '良い(12点推奨)'
+    : fillerDensity < 15 ? '普通(8点推奨)'
+    : '要改善(4点推奨)';
+
   var userMessage = '以下の講話テキストを7項目で採点し、JSONで返してください。\n\n'
     + '採点者: ' + speakerName + 'さん\n\n'
-    + '【重要な採点ルール】\n'
-    + '・7項目の合計点が必ず60〜100点の範囲に収まるように採点してください\n'
-    + '・温かく前向きな採点をしてください。厳しすぎず、講話者のがんばりを認める採点を心がけてください\n'
-    + '・最低点は60点以上になるよう、各項目に最低限の点数を確保してください\n\n'
-    + wordingInstruction + '\n\n'
-    + '【講話テキスト】\n' + transcription + '\n\n'
+    + '【採点スタイル】\n'
+    + '・講話者の努力と勇気を認め、自信を持てるような採点をしてください\n'
+    + '・良い点を積極的に評価し、高めの点数を心がけてください\n'
+    + '・厳しい減点より、できている部分を伸ばす採点スタイルで\n'
+    + '・アドバイスは必ず優しく前向きな表現で書いてください\n\n'
+    + '【フィラー語データ（流暢さの採点の参考にすること）】\n'
+    + '・えー: ' + fillerCount.ee + '回 / あの: ' + fillerCount.ano + '回（合計: ' + fillerTotal + '回）\n'
+    + '・1000文字あたり: ' + fillerDensity + '回\n'
+    + '・評価: ' + fillerLevel + '\n\n'
     + '【採点基準】\n'
-    + '- fluency（流暢さ・フィラー語の少なさ）: 0〜20点\n'
+    + '- fluency（流暢さ）: 0〜15点\n'
     + '- structure（構成の明確さ）: 0〜20点\n'
     + '- specificity（内容の具体性）: 0〜15点\n'
-    + '- wording（言葉の選び方）: 0〜15点\n'
-    + '- engagement（聴衆への働きかけ）: 0〜15点\n'
-    + '- ethics（倫理度）: 0〜10点\n'
-    + '- passion（熱量・誠実さ）: 0〜10点\n\n'
+    + '- wording（言葉の選び方）: 0〜10点\n'
+    + '- engagement（聴衆への働きかけ）: 0〜10点\n'
+    + '- ethics（倫理度）: 0〜15点\n'
+    + '- passion（熱量・誠実さ）: 0〜15点\n\n'
+    + '【重要】各項目の配点上限を絶対に超えないこと\n\n'
     + '【アドバイスの書き方】\n'
-    + '必ず「〇〇した方が聞きやすくなるかもしれませんね」「〇〇を意識してみると、さらに伝わりやすくなるかもしれません」のような優しく前向きな表現を使ってください。\n\n'
+    + '「〇〇した方が聞きやすくなるかもしれませんね」のような優しく前向きな表現を使ってください。\n\n'
+    + '【講話テキスト】\n' + transcription + '\n\n'
     + '返す形式（JSONのみ、マークダウン不要）:\n'
     + '{\n'
     + '  "total": 合計点,\n'
@@ -248,9 +276,10 @@ function handleScore(data) {
     + '  "summary": "講話の要約（300文字以内）"\n'
     + '}';
 
-  var resultText = callClaude(systemPrompt, userMessage);
-  var cleaned = resultText.replace(/```json|```/g, '').trim();
-  var result = JSON.parse(cleaned);
+  var resultText = callGemini(systemPrompt, userMessage);
+  var jsonMatch = resultText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('採点の解析に失敗しました: ' + resultText.substring(0, 200));
+  var result = JSON.parse(jsonMatch[0]);
 
   if (!result.total && result.scores) {
     var total = 0;
@@ -259,6 +288,8 @@ function handleScore(data) {
   }
 
   result.filler_count = fillerCount;
+  result.filler_density = fillerDensity;
+  result.filler_level = fillerLevel;
   return result;
 }
 
@@ -387,7 +418,7 @@ function sendLineForVenue(venue) {
     return;
   }
 
-  const imageUrl = 'https://asahiya-ai.com/rinri-line/images/flyer.png';
+ const imageUrl = 'https://i.ibb.co/pjf1pvMM/Chat-GPT-Image-2026-4-24-15-17-22.png';
 
   try {
     const response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
@@ -551,7 +582,7 @@ function testSendKohoGroup() {
   if (!token)   { Logger.log('エラー: LINE_TOKEN_佐世保 が設定されていません'); return; }
   if (!groupId) { Logger.log('エラー: LINE_GROUP_ID_佐世保広報 が設定されていません'); return; }
 
-  const testText = 'コケコッコーー！\nこれはテスト送信です🐔\n正常に届いていたら設定完了！';
+  const testText = 'コケコッコーー！\nこれはテスト送信です🐔\n正常に届いていたら設定完了！\n木曜の朝9時にモーニングセミナーのお知らせをしますね♪';
 
   try {
     const response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
@@ -577,4 +608,9 @@ function testSendKohoGroup() {
   } catch (e) {
     Logger.log('致命的なエラー: ' + e.toString());
   }
+}
+
+function testGeminiApi() {
+  var result = callGemini('あなたはテスト用AIです。', 'こんにちは！一言返してください。');
+  Logger.log(result);
 }
